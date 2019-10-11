@@ -1,0 +1,8 @@
+salesforce:
+  grant_type: "password"
+  client_id: "3MVG9PbQtiUzNgN5HOnTahCd6GTQfm7Q8I38swUR6m0rJgLY8C_lM2XuNqsdF3E_3_GIBlcqYaKeOKcZ8uSDz"
+  client_secret: "C36B827A9001B6239E427148819CDD37CBDC81F2B3303CF124D06C436CA660A7"
+  username: "rmukherji@cutx.org.shortapp"
+  password: "Rahul@123rTd6dx0jGjP0OUZmlCgZd0Xs"
+  tokenEndpoint: "cutx--shortapp.cs51.my.salesforce.com"
+ 

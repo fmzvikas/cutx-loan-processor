@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:wsc="http://www.mulesoft.org/schema/mule/wsc" xmlns:jms="http://www.mulesoft.org/schema/mule/jms"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/jms http://www.mulesoft.org/schema/mule/jms/current/mule-jms.xsd
+http://www.mulesoft.org/schema/mule/wsc http://www.mulesoft.org/schema/mule/wsc/current/mule-wsc.xsd">
+	<flow name="capture_dti_loan_informationFlow" doc:id="55dd09db-f735-4bff-bd6a-4469541c6f88" >
+		<ee:transform doc:name="Transform Message" doc:id="20fbd700-2671-4db4-879e-acb8d8b3d2cb" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/xml
+ns ns0 http://www.symxchange.generated.symitar.com/v2/account
+ns com http://www.symxchange.generated.symitar.com/v1/common/dto/common
+---
+{
+	ns0#getAccountSelectFieldsFilterChildren: {
+		Request @(MessageId: p('messageId')): {
+			AccountNumber: vars.primaryAccountNumber,
+			Credentials @(com#ProcessorUser: p('credentials.processorUser')): {
+				CardCredentials: {
+					CardNumber:  p('credentials.cardCredentials.cardNumber') ++ vars.primaryAccountNumber as String
+				}
+			},
+			DeviceInformation @(DeviceType: p('deviceType'), DeviceNumber: p('deviceNumber')): null,
+			SelectableFields: {
+				LoanAppSelectableFields: {
+					LoanAppFields: {
+						ApplicationDate:true,
+						ApprovalAmount:true,
+						ApprovalCode:true,
+						ApprovalDate:true,
+						Apr:true,
+						CreationDate:true,
+						CreditScore:true,
+						DebtRatio: 1,
+						DebtRatio: 2,
+						DebtRatio: 3,
+						Id:true,
+						InterestRate:true,
+						LoanAmount:true,
+						LoanDescription:true,
+						LoanType:true,
+						Payment:true,
+						TermMonths:true,
+						TotalAssets:true,
+						TotalCreditLimits:true,
+						TotalExpenses:true,
+						TotalIncome:true,
+						TotalLiabilities:true,
+						Type:true
+					}
+				}
+			},
+			ChildrenSearchFilter: {
+				NameFilter: {
+					Query: "Type=0"
+				}
+			}
+		}
+	}
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="Logger" doc:id="b1fdcb83-64d6-4f6f-8c34-d57938b4dbdc" message=" External ID: #[vars.loanProcessorReq.externalId] ::  Get Credit Score request :: #[payload]"/>
+		<wsc:consume doc:name="Consume" doc:id="a4246298-c786-44cc-85ab-66c0a8a31ea0" config-ref="Account_Service_Config" operation="getAccountSelectFieldsFilterChildren"/>
+		<logger level="INFO" doc:name="Logger" doc:id="3887e44b-8b63-40b4-9f70-d828a63d71c5" message=" External ID: #[vars.loanProcessorReq.externalId] ::  Get Auto Decision Response:: #[payload]"/>
+		<ee:transform doc:name="Transform Message" doc:id="96cc16b9-d076-44ab-b68f-5916efaeddf2" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/java
+ns ns0 http://www.symxchange.generated.symitar.com/v2/account
+
+---
+using(loanapp=payload.body.ns0#getAccountSelectFieldsFilterChildrenResponse.SingleResponse.Account.LoanAppList.*LoanApp filter ($.Id == vars.loanAppId as String)){
+	debtRatioAndCreditScoreObj : loanapp.*DebtRatio filter ($.EntryId == '1') map {
+		debtRatio: $.DebtRatio as Number,
+		creditScore: loanapp.CreditScore
+	}
+}
+]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="Logger" doc:id="4e500458-1864-4d2b-8fa6-6916f428b607" message=" External ID: #[vars.loanProcessorReq.externalId] :: Credit Score and Debt Ratio: #[payload]"/>
+		<set-variable value="#[payload.debtRatioAndCreditScoreObj[0].debtRatio]" doc:name="DTI Ratio" doc:id="dba9aa63-98c1-4106-9e50-463ed35ec08a" variableName="dtiRatio"/>
+		<set-variable value="#[payload.debtRatioAndCreditScoreObj[0].creditScore[0]]" doc:name="Credit Score" doc:id="bc3b02b2-33c2-4652-ae06-ec8df0cb3aba" variableName="creditScore"/>
+		<ee:transform doc:name="Transform Message" doc:id="488d1567-0c32-490b-855c-9b596ed04ba3" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/java
+
+var creditScore = payload.debtRatioAndCreditScoreObj[0].creditScore[0]
+var debtRatio = payload.debtRatioAndCreditScoreObj[0].debtRatio
+var annualIncome = vars.loanProcessorReq.primaryCustomer.primaryIncome as Number
+
+---
+if(creditScore >=750 and debtRatio <= 55)
+{
+	maxApprovedLoanAmount:(annualIncome as Number * (110 /100)) as Number as String {format: "#"}
+}else if(creditScore >=710 and creditScore <=749  and debtRatio <= 50)
+{
+	maxApprovedLoanAmount: (annualIncome as Number * (110 /100)) as Number as String {format: "#"}
+} else if(creditScore >=680 and creditScore <=709  and debtRatio <= 45)
+{ 
+	maxApprovedLoanAmount:(annualIncome as Number * (80 /100)) as Number as String {format: "#"}
+} 
+else if(creditScore >=640 and creditScore <=679  and debtRatio <= 40) 
+{ 
+	maxApprovedLoanAmount: (annualIncome as Number * (75 /100) ) as Number as String {format: "#"}
+}else{
+	maxApprovedLoanAmount:"NA"
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+</mule>

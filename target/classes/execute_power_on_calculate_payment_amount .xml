@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:validation="http://www.mulesoft.org/schema/mule/validation" xmlns:wsc="http://www.mulesoft.org/schema/mule/wsc"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/wsc http://www.mulesoft.org/schema/mule/wsc/current/mule-wsc.xsd
+http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mule/validation/current/mule-validation.xsd">
+	<flow name="execute_power_on_calculate_payment_amount_Flow" doc:id="3d65da95-cd50-4fcc-9f37-d439b4dd8201" >
+		<ee:transform doc:name="Execute Power on Calculate Payment Amount Request Transformer" doc:id="e8e6e5b3-f3df-47a6-8f17-cffd5371dc9c" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/xml
+ns pow http://www.symxchange.generated.symitar.com/v1/poweron
+ns com http://www.symxchange.generated.symitar.com/v1/common/dto/common
+---
+{
+	pow#executePowerOn: {
+		Request: {
+			Credentials @(com#ProcessorUser: p('credentials.processorUser')): {
+				CardCredentials: {
+					CardNumber: p('credentials.cardCredentials.cardNumber') ++  vars.primaryAccountNumber
+				}
+			},
+			DeviceInformation @(DeviceType: p('deviceType'), DeviceNumber: p('deviceNumber')): null,
+			Header: {
+				MessageID: "CALCULATE PAYMENT",
+				RGState: "1"
+			},
+			Body: {
+				File: "PS.SYMAPP.PROJECT",
+				RGSession: "1",
+				UserDefinedParameters: {
+					RGUserChr: {
+						ID: 1,
+						Value: vars.primaryAccountNumber
+					},
+					RGUserChr: {
+						ID: 2,
+						Value: vars.loanAppId
+					}				
+				}
+			}
+		}
+	}
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="Logger" doc:id="82c7da7f-d066-4fc0-94c8-1a76de23e597" message=" External ID: #[vars.loanProcessorReq.externalId] ::  calculate payment ::#[payload]"/>
+		<wsc:consume doc:name="Execute Power on Calculate Payment Amount" doc:id="dc276d1e-fb91-4674-8e90-85d886a0d18f" config-ref="power_on_service_config" operation="executePowerOn"/>
+		<logger level="INFO" doc:name="Logger" doc:id="30d46ad0-ca1b-4e83-9c2b-26a03865db1d" message=" External ID: #[vars.loanProcessorReq.externalId] ::  calculate payment response::#[payload]"/>
+		<ee:transform doc:name="Execute Power on Calculate Payment Amount ResponseTransformer" doc:id="0357f071-6a9d-41a0-8da9-365467048bdb" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+ns ns0 http://www.symxchange.generated.symitar.com/v1/poweron
+---
+{
+	RGLines: read(payload.body.ns0#executePowerOnResponse.Response.Body.RGLines default "", "application/json")
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+</mule>

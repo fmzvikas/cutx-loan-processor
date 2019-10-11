@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:wsc="http://www.mulesoft.org/schema/mule/wsc"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/wsc http://www.mulesoft.org/schema/mule/wsc/current/mule-wsc.xsd">
+	
+	<flow name="lookup_by_ssn" doc:id="0b96ecc4-c334-4755-88fe-fc11a6d0e849" >
+		<ee:transform doc:name="Find By SSN Request Transform Message" doc:id="98ab4c1d-a2e6-4346-98ec-fd623e7cc145">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/xml
+ns ns0 http://www.symxchange.generated.symitar.com/v1/findby
+ns com http://www.symxchange.generated.symitar.com/v1/common/dto/common
+---
+{
+	ns0#findBySSN: {
+		Request @(com#MessageId: p('messageId')): {
+			SSN:  vars.loanProcessorReq.primaryCustomer.primarySSN,
+			DeviceInformation @(DeviceType: p('deviceType'), DeviceNumber: p('deviceNumber')): null,
+			Credentials @(com#ProcessorUser: p('credentials.processorUser')): {
+				AdministrativeCredentials: {
+					Password: p('credentials.administrativeCredentials.password')
+				}
+			}
+		}
+	}
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="Log Find By SSN Request" doc:id="65a8e33a-f96e-4f2e-8f5c-c698d3ac3b16" message="External ID: #[vars.loanProcessorReq.externalId] Find by SSN Request: #[payload]" />
+		<wsc:consume operation="findBySSN" doc:name="findBySSN_Service" doc:id="d5cfe98b-5dcc-4bab-9fb6-3da2babe8b93" config-ref="FindBy_Service_Config">
+			<error-mapping sourceType="WSC:SOAP_FAULT" targetType="APP:BAD_REQUEST" />
+		</wsc:consume>
+		<ee:transform doc:name="Find by SSN Response Transform Message" doc:id="7cb02696-a360-4f31-a099-eacafa473410" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+ns ns0 http://www.symxchange.generated.symitar.com/v1/findby
+---
+{
+	primaryAccountNumbers: payload.body.ns0#findBySSNResponse.PluralResponse.*AccountNumber map ( accountNumber , indexOfAccountNumber ) -> accountNumber 
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="Logger" doc:id="7cec11d2-85c7-4c23-b9d8-ee66b769a8fe" message=" External ID: #[vars.loanProcessorReq.externalId]:: Find By SSN Response:  #[payload]"/>
+	
+</flow>
+	
+	
+	
+	</mule>

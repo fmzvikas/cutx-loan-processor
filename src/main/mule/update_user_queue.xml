@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:wsc="http://www.mulesoft.org/schema/mule/wsc" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/wsc http://www.mulesoft.org/schema/mule/wsc/current/mule-wsc.xsd">
+	<flow name="update_user_queueFlow" doc:id="b640e1c6-65a0-4136-890a-47abf2caf179" >
+		<ee:transform doc:name="Update UserQueue Request Transformer" doc:id="931fcd5f-a92b-4044-ae8e-1abad768bae0" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/xml
+ns ns0 http://www.symxchange.generated.symitar.com/v2/account
+ns com http://www.symxchange.generated.symitar.com/v1/common/dto/common
+
+var channel = vars.loanProcessorReq.channel
+var operatorId = vars.loanProcessorReq.operatorId
+var isLoanApproved = vars.loanStatus.RGLines.Approved default false
+var isLoanDenied = vars.loanStatus.RGLines.Denied default false
+var isLoanPending = vars.loanStatus.RGLines.Pending default false
+
+var userQueue = if(channel == "W" and vars.executePowerOnError == true)  p('userQueue.executePowerOnErrorQueue')
+					else if(isLoanDenied == true) p('userQueue.denied') 
+						else if ( (operatorId == "" or operatorId == null)  and (isLoanPending == true or isLoanApproved == true) and channel == "W" ) p('userQueue.pendingOrApprovedWithOutOpIdChannelWeb')
+							else if ( (operatorId == "" or operatorId == null) and (isLoanPending == true or isLoanApproved == true) and channel == "SF") p('userQueue.pendingOrApprovedWithOutOpIdChannelSF') 
+								else if ( (operatorId != "" or operatorId != null) and (isLoanPending == true or isLoanApproved == true)) operatorId
+									else p('userQueue.default')
+---
+{
+	ns0#updateLoanAppByID: {
+		Request @(MessageId: p('messageId')): {
+			LoanAppId: vars.loanAppId,
+			LoanAppUpdateableFields:
+			{
+			   UserQueue: userQueue
+			},
+			AccountNumber: vars.primaryAccountNumber, 
+			Credentials @(com#ProcessorUser: p('credentials.processorUser')): {
+				CardCredentials: {
+					CardNumber:  p('credentials.cardCredentials.cardNumber') ++ vars.primaryAccountNumber, 
+				}
+			},
+			DeviceInformation @(DeviceType: p('deviceType'), DeviceNumber: p('deviceNumber')): null
+		}
+	}
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="Logger" doc:id="29e26739-8cb3-4b59-bb0c-62798c6d902e" message=" External ID: #[vars.loanProcessorReq.externalId] ::  Update Queue request:: #[payload]"/>
+		<wsc:consume doc:name="Update UserQueue" doc:id="e7a672e5-1999-489c-b311-672be9eb4fae" config-ref="Account_Service_Config" operation="updateLoanAppByID"/>
+		<logger level="INFO" doc:name="Logger" doc:id="4a11b7e0-a61d-4b64-a2cb-952f97596627" message=" External ID: #[vars.loanProcessorReq.externalId] ::  Update Queue Response:: #[payload]"/>
+		<ee:transform doc:name="Update UserQueue Response Transformer" doc:id="1d1f210a-9f30-4b27-b6f1-487f735fb942" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/java
+---
+{
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+</mule>

@@ -1,0 +1,186 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<types:mule xmlns:types="http://www.mulesoft.org/schema/mule/types">
+  <types:catalog>
+    <types:type name="loanprocessor" format="java">
+      <types:shape format="raml"><![CDATA[#%RAML 1.0 DataType
+type: object
+properties:
+    ssnnumber: string
+    accountnumber:
+        type: array
+    
+        ]]></types:shape>
+    </types:type>
+    <types:type name="findPrimaryAccountResp" format="java">
+      <types:shape format="raml"><![CDATA[#%RAML 1.0 DataType
+type: object
+properties:
+    BirthDate?:
+      type: date-only
+    City?:
+      type: string
+    First?:
+      type: string
+    Last?:
+      type: string
+    Middle:
+      type: string
+    Ssn?:
+      type: string
+    State?:
+      type: string
+    Street?: 
+      type: string
+    LoanType?:
+      type: number
+    ZipCode?:
+      type: string
+    ]]></types:shape>
+    </types:type>
+    <types:type name="loanIds" format="java">
+      <types:shape format="raml"><![CDATA[#%RAML 1.0 DataType
+type: object
+properties:
+    loanIds:
+        type: array]]></types:shape>
+    </types:type>
+    <types:type name="validReport" format="java">
+      <types:shape format="raml"><![CDATA[#%RAML 1.0 DataType
+type: string]]></types:shape>
+    </types:type>
+    <types:type name="riskBasedPricingRate" format="java">
+      <types:shape format="raml"><![CDATA[#%RAML 1.0 DataType
+type: string]]></types:shape>
+    </types:type>
+    <types:type name="loanInformation" format="json">
+      <types:shape format="json-schema" location="datatypes/loan_info.json"/>
+    </types:type>
+    <types:type name="error" format="java">
+      <types:shape format="raml"><![CDATA[#%RAML 1.0 DataType
+type: object
+properties:
+    status:
+        type: number
+    flowId:
+        type: string]]></types:shape>
+    </types:type>
+  </types:catalog>
+  <types:enrichment select="#e16ef3c6-3647-4af7-b473-337d4623a093">
+    <types:processor-declaration>
+      <types:input-event>
+        <types:message>
+          <types:payload type="loanprocessor"/>
+        </types:message>
+      </types:input-event>
+    </types:processor-declaration>
+  </types:enrichment>
+  <types:enrichment select="#91d0c327-cf53-4943-87b1-0a37893210ad">
+    <types:processor-declaration>
+      <types:output-event>
+        <types:message>
+          <types:payload type="loanprocessor"/>
+        </types:message>
+      </types:output-event>
+    </types:processor-declaration>
+  </types:enrichment>
+  <types:enrichment select="#7cb02696-a360-4f31-a099-eacafa473410">
+    <types:processor-declaration>
+      <types:output-event>
+        <types:message>
+          <types:payload type="loanprocessor"/>
+        </types:message>
+      </types:output-event>
+    </types:processor-declaration>
+  </types:enrichment>
+  <types:enrichment select="#e0a91393-eefd-405d-9867-d2276b230a84">
+    <types:processor-declaration>
+      <types:input-event>
+        <types:message>
+          <types:attributes type="loanprocessor"/>
+        </types:message>
+      </types:input-event>
+    </types:processor-declaration>
+  </types:enrichment>
+  <types:enrichment select="#34762d1d-9082-49dc-a0bd-08918147d628">
+    <types:processor-declaration>
+      <types:input-event>
+        <types:message>
+          <types:payload type="loanprocessor"/>
+          <types:attributes type="loanprocessor"/>
+        </types:message>
+      </types:input-event>
+    </types:processor-declaration>
+  </types:enrichment>
+  <types:enrichment select="#eb146514-00c2-4561-8113-25f078e8a5d0">
+    <types:processor-declaration>
+      <types:output-event>
+        <types:message>
+          <types:attributes type="findPrimaryAccountResp"/>
+        </types:message>
+      </types:output-event>
+    </types:processor-declaration>
+  </types:enrichment>
+  <types:enrichment select="#fe6fa99d-44ba-4394-b08e-c3565528ce63">
+    <types:processor-declaration>
+      <types:output-event>
+        <types:message>
+          <types:payload type="loanprocessor"/>
+        </types:message>
+      </types:output-event>
+    </types:processor-declaration>
+  </types:enrichment>
+  <types:enrichment select="#24f32b74-2d2a-4885-841e-99f9271e2d19">
+    <types:processor-declaration>
+      <types:output-event>
+        <types:message>
+          <types:payload type="loanIds"/>
+        </types:message>
+      </types:output-event>
+    </types:processor-declaration>
+  </types:enrichment>
+  <types:enrichment select="#b77450ca-09c3-4426-bbf0-e08128ddd9cc">
+    <types:processor-declaration>
+      <types:output-event>
+        <types:message>
+          <types:payload type="validReport"/>
+        </types:message>
+      </types:output-event>
+    </types:processor-declaration>
+  </types:enrichment>
+  <types:enrichment select="#45dc94ab-a982-45b4-bc47-f7bfae7efe43">
+    <types:processor-declaration>
+      <types:output-event>
+        <types:message>
+          <types:payload type="validReport"/>
+        </types:message>
+      </types:output-event>
+    </types:processor-declaration>
+  </types:enrichment>
+  <types:enrichment select="#1d61cd88-5611-4b59-95e6-e865002c6098">
+    <types:processor-declaration>
+      <types:output-event>
+        <types:message>
+          <types:payload type="riskBasedPricingRate"/>
+        </types:message>
+      </types:output-event>
+    </types:processor-declaration>
+  </types:enrichment>
+  <types:enrichment select="#96cc16b9-d076-44ab-b68f-5916efaeddf2">
+    <types:processor-declaration>
+      <types:output-event>
+        <types:message>
+          <types:payload type="loanInformation"/>
+        </types:message>
+      </types:output-event>
+    </types:processor-declaration>
+  </types:enrichment>
+  <types:enrichment select="#ab7049ff-d869-4696-812a-7a81c1ffcd2a">
+    <types:processor-declaration>
+      <types:output-event>
+        <types:variables>
+          <types:variable name="locatorNumber" type="loanInformation"/>
+        </types:variables>
+      </types:output-event>
+    </types:processor-declaration>
+  </types:enrichment>
+</types:mule>

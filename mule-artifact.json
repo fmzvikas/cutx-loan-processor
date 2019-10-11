@@ -1,0 +1,71 @@
+{
+  "configs": [
+    "create_prospect_account.xml",
+    "pull_decision.xml",
+    "execute_credit_pull_power_on .xml",
+    "create_loan_app.xml",
+    "create_loan_app_person.xml",
+    "execute_power_on_calculate_finance_calculations .xml",
+    "find_primary_accountnumber.xml",
+    "get_account_details .xml",
+    "cutx-loan-processor_orchestration.xml",
+    "cutx-global-config.xml",
+    "cutx-loan-processor-validations.xml",
+    "update_loan_app_by_id.xml",
+    "lookup_by_ssn.xml",
+    "capture_dti_loan_information.xml",
+    "send_to_sales_force_queue.xml",
+    "update_user_queue.xml",
+    "get_account_select_fields_filter_children.xml",
+    "get_credit_report_locator.xml",
+    "get_redit_report_locator.xml",
+    "execute_power_on_calculate_interest_rate.xml",
+    "execute_power_on_calculate_payment_amount .xml"
+  ],
+  "secureProperties": [],
+  "redeploymentEnabled": true,
+  "name": "com.mycompany:cutx-loan-processor:1.0.0",
+  "minMuleVersion": "4.2.0",
+  "requiredProduct": "MULE_EE",
+  "classLoaderModelLoaderDescriptor": {
+    "id": "mule",
+    "attributes": {
+      "exportedPackages": [],
+      "exportedResources": [
+        "api/cutx-loan-processor_orchestration.raml",
+        "application-types.xml",
+        "capture_dti_loan_information.xml",
+        "config/configuration.dev.yaml",
+        "config/configuration.prod.yaml",
+        "config/salesforce.configuration.dev.yaml",
+        "config/salesforce.configuration.prod.yaml",
+        "create_loan_app.xml",
+        "create_loan_app_person.xml",
+        "create_prospect_account.xml",
+        "cutx-global-config.xml",
+        "cutx-loan-processor-validations.xml",
+        "cutx-loan-processor_orchestration.xml",
+        "datatypes/loan_info.json",
+        "execute_credit_pull_power_on .xml",
+        "execute_power_on_calculate_finance_calculations .xml",
+        "execute_power_on_calculate_interest_rate.xml",
+        "execute_power_on_calculate_payment_amount .xml",
+        "find_primary_accountnumber.xml",
+        "get_account_details .xml",
+        "get_account_select_fields_filter_children.xml",
+        "get_credit_report_locator.xml",
+        "get_redit_report_locator.xml",
+        "log4j2.xml",
+        "lookup_by_ssn.xml",
+        "pull_decision.xml",
+        "send_to_sales_force_queue.xml",
+        "update_loan_app_by_id.xml",
+        "update_user_queue.xml"
+      ]
+    }
+  },
+  "bundleDescriptorLoader": {
+    "id": "mule",
+    "attributes": {}
+  }
+}

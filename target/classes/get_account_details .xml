@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:wsc="http://www.mulesoft.org/schema/mule/wsc"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/wsc http://www.mulesoft.org/schema/mule/wsc/current/mule-wsc.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+	<flow name="get_account_details_Flow" doc:id="91884858-d269-483c-8b2e-f278f0915f9c" >
+		<set-variable value="#[payload[0]]" doc:name="Account Number" doc:id="0e23f683-6a8d-4fe6-b7d7-81a708406eae" variableName="tmpAccountNumber"/>
+		<ee:transform doc:name="Transform Message" doc:id="34762d1d-9082-49dc-a0bd-08918147d628" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/xml
+ns ns0 http://www.symxchange.generated.symitar.com/v2/account
+ns com http://www.symxchange.generated.symitar.com/v1/common/dto/common
+---
+{
+	ns0#getAccountSelectFieldsFilterChildren: {
+		Request @(MessageId: p('messageId')): {
+			AccountNumber: vars.tmpAccountNumber,
+			Credentials @(com#ProcessorUser: p('credentials.processorUser')): {
+				CardCredentials: {
+					CardNumber:  p('credentials.cardCredentials.cardNumber') ++ vars.tmpAccountNumber as String
+				}
+			},
+			DeviceInformation @(DeviceType: p('deviceType'), DeviceNumber: p('deviceNumber')): null,
+			SelectableFields: {
+				AccountFields: {
+					CloseDate: true,
+					Type: true
+				},
+				LoanAppSelectableFields: {
+					LoanAppFields: {
+						ApplicationDate: true,
+						Id: true,
+						Type: true
+					}
+				},
+				NameSelectableFields: {
+					NameFields: {
+						BirthDate: true,
+						City: true,
+						First: true,
+						Last: true,
+						Middle: true,
+						Ssn: true,
+						State: true,
+						Street: true,
+						Type: true,
+						ZipCode: true
+					}
+				}
+			},
+			ChildrenSearchFilter: {
+				NameFilter: {
+					Query: "Type=0"
+				}
+			}
+		}
+	}
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="Logger" doc:id="42ccce5a-f7c1-4d46-ae5f-c6078026481b" message=" External ID: #[vars.loanProcessorReq.externalId] ::  Get Account Details Request - #[payload]"/>
+		<wsc:consume doc:name="Get Account Details " doc:id="10166e23-ba31-442f-8936-4caad009e39e" config-ref="Account_Service_Config" operation="getAccountSelectFieldsFilterChildren"/>
+		<logger level="INFO" doc:name="Logger" doc:id="5ac94951-51b3-4bab-babb-8b90fd568cb5" message=" External ID: #[vars.loanProcessorReq.externalId] ::  Get Account Details Response - #[payload]"/>
+		<ee:transform doc:name="Transform Message" doc:id="24f32b74-2d2a-4885-841e-99f9271e2d19" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/java
+ns ns3 http://www.symxchange.generated.symitar.com/v2/account
+---
+{
+	loanIds: (payload.body.ns3#getAccountSelectFieldsFilterChildrenResponse.SingleResponse.Account.LoanAppList.*LoanApp.Id map ( id , indexOfId ) -> id as Number default []),
+	accountNumber: vars.tmpAccountNumber
+}]]></ee:set-payload>
+			</ee:message>
+			<ee:variables >
+				<ee:set-variable variableName="loanIds" ><![CDATA[%dw 2.0
+output application/java
+---
+{
+}]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<remove-variable doc:name="Remove Account Number" doc:id="4a42bdc1-2302-490f-bf26-6ba40d7b3896" variableName="tmpAccountNumber"/>
+		<logger level="INFO" doc:name="Logger" doc:id="9b6b142c-2499-4e3c-940f-bb1aff36fbd2" message=" External ID: #[vars.loanProcessorReq.externalId] :: Get Account Details Loan Ids ---&gt; #[payload]"/>
+	</flow>
+</mule>

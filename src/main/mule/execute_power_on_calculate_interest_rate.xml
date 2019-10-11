@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:wsc="http://www.mulesoft.org/schema/mule/wsc" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/wsc http://www.mulesoft.org/schema/mule/wsc/current/mule-wsc.xsd">
+	<flow name="execute_power_on_calculate_interest_rateFlow" doc:id="183c0bbc-349e-4c02-a149-e46adca31d52" >
+		<ee:transform doc:name="Execute Power on Calculate Interest Request Transformer" doc:id="baf62588-009b-4e68-a920-e737aa5ed753" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/xml
+ns pow http://www.symxchange.generated.symitar.com/v1/poweron
+ns com http://www.symxchange.generated.symitar.com/v1/common/dto/common
+
+---
+{
+	pow#executePowerOn: {
+		Request: {
+			Credentials @(com#ProcessorUser: p('credentials.processorUser')): {
+				CardCredentials: {
+					CardNumber: p('credentials.cardCredentials.cardNumber') ++  vars.primaryAccountNumber
+				}
+			},
+			DeviceInformation @(DeviceType: p('deviceType'), DeviceNumber: p('deviceNumber')): null,
+			Header: {
+				MessageID: "GET INTERESTRATE",
+				RGState: "1"
+			},
+			Body: {
+				File: "PS.SYMAPP.RBP",
+				RGSession: "1",
+				UserDefinedParameters: {
+					RGUserChr: {
+						ID: 1,
+						Value: vars.primaryAccountNumber
+					},
+					RGUserChr: {
+						ID: 2,
+						Value: vars.loanAppId
+					}				
+				}
+			}
+		}
+	}
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="Logger" doc:id="b599b3ed-c85f-4505-a040-27785874a9ae" message=" External ID: #[vars.loanProcessorReq.externalId] ::  Get Intrest Rate Request #[payload]"/>
+		<wsc:consume doc:name="Execute Power on Calculate Interest" doc:id="b8c0f624-1909-40dc-bbd6-2acc8e7bbab1" config-ref="power_on_service_config" operation="executePowerOn"/>
+		<logger level="INFO" doc:name="Logger" doc:id="1306380e-b780-4e63-a107-8ae97b123f08" message=" External ID: #[vars.loanProcessorReq.externalId] ::  Get Intrestrate Service Response #[payload]"/>
+		<ee:transform doc:name="Execute Power on Calculate Interest ResponseTransformer" doc:id="1d61cd88-5611-4b59-95e6-e865002c6098" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/java
+ns ns0 http://www.symxchange.generated.symitar.com/v1/poweron
+
+var rgLinesJson = 
+read(payload.body.ns0#executePowerOnResponse.Response.Body.RGLines default "", "application/json")
+---
+RiskBasedPricingRate: rgLinesJson.RiskBasedPricingRate default 0 as Number
+]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<set-variable value='#[payload.RiskBasedPricingRate]' doc:name="RiskBasedPricingRate" doc:id="acd07840-95c6-4435-b39d-790fc0f32b45" variableName="riskBasedPricingRate"/>
+		<logger level="INFO" doc:name="Logger" doc:id="3dd48ae5-f7d0-409d-bac3-b0c664ed860c" message=" External ID: #[vars.loanProcessorReq.externalId] ::  RiskBasedPricingRate ---&gt; #[vars.riskBasedPricingRate]"/>
+	</flow>
+</mule>

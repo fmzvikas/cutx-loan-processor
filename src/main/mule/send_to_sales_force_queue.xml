@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:os="http://www.mulesoft.org/schema/mule/os" xmlns:email="http://www.mulesoft.org/schema/mule/email"
+	xmlns:oauth="http://www.mulesoft.org/schema/mule/oauth"
+	xmlns:salesforce="http://www.mulesoft.org/schema/mule/salesforce" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/oauth http://www.mulesoft.org/schema/mule/oauth/current/mule-oauth.xsd
+http://www.mulesoft.org/schema/mule/email http://www.mulesoft.org/schema/mule/email/current/mule-email.xsd
+http://www.mulesoft.org/schema/mule/salesforce http://www.mulesoft.org/schema/mule/salesforce/current/mule-salesforce.xsd
+http://www.mulesoft.org/schema/mule/os http://www.mulesoft.org/schema/mule/os/current/mule-os.xsd">
+	<flow name="send_to_sales_force_queueFlow" doc:id="2d882f02-d8a8-4c6f-a6ba-486df41429d6" >
+		<async doc:name="Async" doc:id="8761e965-94df-45bb-b4ce-cc98428606d5" >
+			<flow-ref doc:name="Flow Reference" doc:id="d87b99b0-31a2-4aa7-b2a5-078b60a6d879" name="send_to_sales_force_queue_generate_token_sub_Flow" />
+			<logger level="INFO" doc:name="Logger" doc:id="6fd2135d-5417-4420-89a1-2779e1ea2dba" message=" External ID: #[vars.loanProcessorReq.externalId] ::  bearerToken  #[vars.bearerToken]"/>
+			<ee:transform doc:name="Sales Force Request Transformer" doc:id="83a82f6f-9866-4410-9992-ad03a95a12cf">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+
+var statusCode = if(vars.salesForceInput.statusCode == null) 200 else vars.salesForceInput.statusCode 
+var statusMessage = if(vars.salesForceInput.statusMessage == null) "" else vars.salesForceInput.statusMessage 
+var flowId = if(vars.salesForceInput.flowId == null) "NA" else vars.salesForceInput.flowId
+var isCoborrower = vars.loanProcessorReq.hasCoBorrower
+var channel = vars.loanProcessorReq.channel
+var shortAppStage = if(vars.salesForceInput.shortAppStage == null) "Dropout" else vars.salesForceInput.shortAppStage
+var decision =  if (vars.salesForceInput.decision == null) "NA" else vars.salesForceInput.decision
+
+---
+[
+  {
+    "channel": vars.loanProcessorReq.channel,
+    "status_code": statusCode ,
+    "status_message": statusMessage,
+	"App_Ref_Number": vars.appRefrenceNumber,
+    "customerDetails": {
+      "firstName": vars.loanProcessorReq.primaryCustomer.primaryFirstName,
+      "lastName":  vars.loanProcessorReq.primaryCustomer.primaryLastName,
+      "email": vars.loanProcessorReq.primaryCustomer.primaryEmail,
+      "phone": vars.loanProcessorReq.primaryCustomer.primaryTelephone,
+      "ssn": vars.loanProcessorReq.primaryCustomer.primarySSN,
+      "birthDate": vars.loanProcessorReq.primaryCustomer.primaryDOB as Date {format: 'M/d/yyyy'} as String {format: 'yyyy-MM-dd'},
+      "loanAmount": vars.loanProcessorReq.financeAmount,
+      "loanApprovedAmount": vars.salesForceInput.loanApprovedAmount,
+      "houseHoldIncome": vars.loanProcessorReq.primaryCustomer.primaryIncome,
+      "isShortAppLead": true,
+      "creditPullCheck": vars.loanProcessorReq.primaryCustomer.primaryCreditPullCheck default false,
+      "isCoborrower": false,
+      "webAppExternalId": if(channel == 'W') vars.loanProcessorReq.externalId  else "",
+      "riskBasedInterestRate": if(vars.riskBasedPricingRate == null) "0.0" else vars.riskBasedPricingRate as String,
+      "dti1":  if(vars.dtiRatio == null) "0.0" else vars.dtiRatio as String,
+      "flowId":flowId,
+      "accountNumber": vars.primaryAccountNumber as String default "",
+      "appId": vars.loanAppId as String default "",
+      "decision": decision,
+      "shortAppStage": shortAppStage,
+      "creditScore":  if(vars.creditScore == null) "0" else vars.creditScore,
+      "address": {
+        "address1": vars.loanProcessorReq.address.streetAddress1,
+        "address2": vars.loanProcessorReq.address.streetAddress2,
+        "city": vars.loanProcessorReq.address.city,
+        "state": vars.loanProcessorReq.address.state,
+        "zip": vars.loanProcessorReq.address.zip
+      }
+    },
+    "coBorrowerDetails": {
+      "cobFirstName": if(isCoborrower == true) vars.loanProcessorReq.coBorrower.coBorrowerFirstName else "",
+      "cobLastName": if(isCoborrower == true) vars.loanProcessorReq.coBorrower.coBorrowerLastName else "",
+      "cobEmail": if(isCoborrower == true) vars.loanProcessorReq.coBorrower.coBorrowerEmail else "",
+      "cobPhone": if(isCoborrower == true) vars.loanProcessorReq.coBorrower.coBorrowerTelephone else "",
+      "cobSsn": if(isCoborrower == true) vars.loanProcessorReq.coBorrower.coBorrowerSSN else "",
+      "cobBirthDate": if(isCoborrower == true) vars.loanProcessorReq.coBorrower.coBorrowerDOB as Date {format: 'M/d/yyyy'} as String {format: 'yyyy-MM-dd'} else "",
+      "cobHouseHoldIncome": if(isCoborrower == true) vars.loanProcessorReq.coBorrower.coBorrowerIncome else "",
+      "isShortAppLead": true,
+      "cobCreditPullCheck": if(isCoborrower == true) vars.loanProcessorReq.coBorrower.coBorrowerCreditPullCheck else false,
+      "isCoborrower": true
+    }
+  }
+]]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+			<logger level="INFO" doc:name="Logger" doc:id="f65c1631-efa5-4bf9-8f88-727f79dfd203" message=" External ID: #[vars.loanProcessorReq.externalId] ::  lead creation request :: #[payload]"/>
+			<until-successful maxRetries="3" doc:name="Until Successful" doc:id="8a7a58a9-b0c9-47c9-98f1-9bc86204f017" millisBetweenRetries="30000">
+				<http:request method="POST" doc:name="SalesForce Lead Creation Request" doc:id="37a7a72d-98ea-44b3-baba-78a1bba71351" path="/services/apexrest/leadConversionFromMuleSoft" config-ref="salesforce_http_request_configuration">
+				<http:headers><![CDATA[#[output application/java
+---
+{
+	"Authorization" : "Bearer " ++ vars.bearerToken,
+	"Content-Type" : "application/json"
+}]]]></http:headers>
+			</http:request>
+			</until-successful>
+			<logger level="INFO" doc:name="Logger" doc:id="85953e55-d142-49a3-b807-b626bf501327" message=" External ID: #[vars.loanProcessorReq.externalId] ::  Lead Creation Response #[payload]"/>
+		</async>
+		<error-handler >
+			<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="4b47e31d-5d2b-4068-be2f-d2ac46395dfb" >
+				<logger level="INFO" doc:name="Logger" doc:id="574589d2-2249-4f3e-9cc7-02a2ae67b45c" message=" External ID: #[vars.loanProcessorReq.externalId] :: Error Occured While writing to sales force"/>
+			
+			</on-error-continue>
+		</error-handler>
+	</flow>
+	<sub-flow name="send_to_sales_force_queue_generate_token_sub_Flow" doc:id="fb19481d-fbfd-4be3-a79b-df67ff1934c5" >
+		<os:retrieve doc:name="Retrieve Bearer Token" doc:id="513cc3b8-b785-45df-8cbf-41d60b0f884d" key="authToken" objectStore="tokenStore" target="bearerToken">
+				<os:default-value><![CDATA[#[""]]]></os:default-value>
+			</os:retrieve>
+		<choice doc:name="Choice" doc:id="27c723bc-14d3-4619-8857-840a2425154f">
+				<when expression='#[vars.bearerToken == "" or vars.bearerToken == null]'>
+				<logger level="INFO" doc:name="Logger" doc:id="2765830d-b125-4789-ab1e-7280f9cd9e48" message=" External ID: #[vars.loanProcessorReq.externalId] ::  Retrieve salesforce token"/>
+				<http:request method="POST" doc:name="Get Access Token" doc:id="aae36d73-c00e-4a73-82f9-d31b0780ad5f" path="/services/oauth2/token" config-ref="salesforce_http_request_configuration">
+				<http:query-params><![CDATA[#[output application/java
+---
+{
+	"grant_type" : p('salesforce.grant_type'),
+	"client_id" : p('salesforce.client_id'),
+	"client_secret" : p('salesforce.client_secret'),
+	"username" : p('salesforce.username'),
+	"password" : p('salesforce.password')
+}]]]>
+			</http:query-params>
+			</http:request>
+				<os:store doc:id="eae0ecfa-ecdf-433f-a3b5-9a8d5441344f" doc:name="Token Store" key="authToken" objectStore="tokenStore">
+			<os:value><![CDATA[#[payload.access_token]]]></os:value>
+		</os:store>
+				<os:retrieve doc:name="Retrieve" doc:id="9fa36043-9d76-4408-8fca-58efe4d78385" key="authToken" target="bearerToken" objectStore="tokenStore">
+					<os:default-value ><![CDATA[#[""]]]></os:default-value>
+				</os:retrieve>
+				
+</when>
+			</choice>
+	</sub-flow>
+</mule>

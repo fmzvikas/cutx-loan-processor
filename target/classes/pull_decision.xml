@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:wsc="http://www.mulesoft.org/schema/mule/wsc" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/wsc http://www.mulesoft.org/schema/mule/wsc/current/mule-wsc.xsd">
+	<flow name="pull_decisionFlow" doc:id="1325e261-426e-47d2-9e28-4e9b30afe568" >
+		<ee:transform doc:name="Pull Decision Request Transformer" doc:id="6f1b3965-3b0c-42ce-bbab-4c98ede32813" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/xml
+ns pow http://www.symxchange.generated.symitar.com/v1/poweron
+ns com http://www.symxchange.generated.symitar.com/v1/common/dto/common
+
+---
+{
+	pow#executePowerOn: {
+		Request: {
+			Credentials @(com#ProcessorUser: p('credentials.processorUser')): {
+				CardCredentials: {
+					CardNumber: p('credentials.cardCredentials.cardNumber') ++  vars.primaryAccountNumber
+				}
+			},
+			DeviceInformation @(DeviceType: p('deviceType'), DeviceNumber: p('deviceNumber')): null,
+			Header: {
+				MessageID: "GET AUTO DECISION",
+				RGState: "1"
+			},
+			Body: {
+				File: "PS.SYMAPP.DECISION",
+				RGSession: "1",
+				UserDefinedParameters: {
+					RGUserChr: {
+						ID: 1,
+						Value: vars.primaryAccountNumber
+					},
+					RGUserChr: {
+						ID: 2,
+						Value: vars.loanAppId
+					}				
+				}
+			}
+		}
+	}
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="Logger" doc:id="f3072e29-232c-4619-b1a1-51643ca00553" message=" External ID: #[vars.loanProcessorReq.externalId] ::  Get Auto Decision Request:: #[payload]"/>
+		<wsc:consume doc:name="Pull Decision" doc:id="a4d2d48b-c406-43c6-9ef6-eb34c4eb0565" operation="executePowerOn" config-ref="power_on_service_config"/>
+		<logger level="INFO" doc:name="Logger" doc:id="e4cd3c4b-d621-4665-8259-2afe85aa6be6" message=" External ID: #[vars.loanProcessorReq.externalId] ::  Get Auto Decision Response:: #[payload]"/>
+		<ee:transform doc:name="Pull Decision Response Transformer" doc:id="7ad4216f-ec0c-456c-b6fc-19039bc4442d" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+ns ns0 http://www.symxchange.generated.symitar.com/v1/poweron
+
+---
+{
+	RGLines: read(payload.body.ns0#executePowerOnResponse.Response.Body.RGLines default "", "application/json")
+
+}
+]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<set-variable value="#[payload]" doc:name="Loan Approval Status" doc:id="3a799a9e-f4fb-45cd-add3-590cdf7ab584" variableName="loanStatus"/>
+	</flow>
+</mule>

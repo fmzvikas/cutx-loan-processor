@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:wsc="http://www.mulesoft.org/schema/mule/wsc" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/wsc http://www.mulesoft.org/schema/mule/wsc/current/mule-wsc.xsd">
+	<flow name="update_loan_app_by_IDFlow" doc:id="6ee7a9ba-5e37-49c2-9c7a-63cfd12541b5" >
+		<ee:transform doc:name="Update Loan App by ID Request Transformer" doc:id="e31b592e-96ab-4ed7-be67-634e37416aec" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/xml
+ns ns0 http://www.symxchange.generated.symitar.com/v2/account
+ns com http://www.symxchange.generated.symitar.com/v1/common/dto/common
+---
+{
+	ns0#updateLoanAppByID: {
+		Request @(MessageId: p('messageId')): {
+			LoanAppId: vars.loanAppId,
+			LoanAppUpdateableFields:
+			{
+			   LoanAmount: payload.maxApprovedLoanAmount
+			},
+			AccountNumber: vars.primaryAccountNumber, 
+			Credentials @(com#ProcessorUser: p('credentials.processorUser')): {
+				CardCredentials: {
+					CardNumber:  p('credentials.cardCredentials.cardNumber') ++ vars.primaryAccountNumber as String
+				}
+			},
+			DeviceInformation @(DeviceType: p('deviceType'), DeviceNumber: p('deviceNumber')): null
+		}
+		
+	}
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="Logger" doc:id="5a50559c-c917-46ec-bee2-0ccacba273a7" message=" External ID: #[vars.loanProcessorReq.externalId] ::  Update Loan App Request:: #[payload]"/>
+		<wsc:consume doc:name="Update Loan App by ID" doc:id="cdbbf457-6027-478c-b435-706dc2be9078" config-ref="Account_Service_Config" operation="updateLoanAppByID"/>
+		<logger level="INFO" doc:name="Logger" doc:id="173ac030-9a34-42c4-a859-13594a9c4c8f" message=" External ID: #[vars.loanProcessorReq.externalId] ::  Update Loan App Response:: #[payload]"/>
+		<ee:transform doc:name="Update Loan App by ID ResponseTransformer" doc:id="a06dfa59-ebc1-4a29-91cd-6fd555b2bcbd" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/java
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+</mule>

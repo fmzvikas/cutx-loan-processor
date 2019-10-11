@@ -1,0 +1,7 @@
+salesforce:
+  grant_type: "password"
+  client_id: "3MVG9CEn_O3jvv0yukQ40Uer3g6a9L8DW.xFIA9N_weor1JyizieBwJzF7bm_BHSRrTj3ifTJ80ewvBNAAVWJ"
+  client_secret: "0C7AD1F313C7C45098510273E313D3588AD9B0849AC7F7590741344A1B843CB0"
+  username: "integrationusermule@cutx.org"
+  password: "mGK-8Yhkj-45kNjhGuHGaETx4xTsGa2SOfDvFCWdBV9n"
+  tokenEndpoint: "cutx.my.salesforce.com"

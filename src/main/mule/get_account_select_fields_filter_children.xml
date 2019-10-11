@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:scripting="http://www.mulesoft.org/schema/mule/scripting" xmlns:wsc="http://www.mulesoft.org/schema/mule/wsc"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/wsc http://www.mulesoft.org/schema/mule/wsc/current/mule-wsc.xsd
+http://www.mulesoft.org/schema/mule/scripting http://www.mulesoft.org/schema/mule/scripting/current/mule-scripting.xsd">
+	<flow name="get_account_select_fields_filter_childrenFlow" doc:id="80c1aca8-8313-4341-97ac-bf6eda5b445b" >
+		<logger level="INFO" doc:name="Logger" doc:id="5c9d93e0-a1ce-47aa-80a8-58a575af365e" message="Locator Number Service - Start"/>
+		<set-variable value='#[["1","2","3"]]' doc:name="Initialize For Each Collection" doc:id="708b7c80-d4c4-40fa-ba37-4cff34a71a2f" variableName="tmpArray"/>
+		<foreach doc:name="For Each" doc:id="d0ff5446-a442-463b-a307-806ed24df336" collection="vars.tmpArray">
+			<choice doc:name="Choice" doc:id="20f5e06a-45d5-4b56-97ba-177d673e5d70" >
+				<when expression="#[vars.locatorNumber == null or vars.locatorNumber == 0]">
+					<logger level="INFO" doc:name="Logger" doc:id="a8b99921-eb6d-4696-935b-fff1936919bd" message=" External ID: #[vars.loanProcessorReq.externalId] ::  Locator Service Iteration #[payload]" />
+					<ee:transform doc:name="Get account select fields Request Transformer" doc:id="8001c7e2-67cc-4cf4-8821-de7fa9a75d45">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/xml
+ns ns0 http://www.symxchange.generated.symitar.com/v2/account
+ns com http://www.symxchange.generated.symitar.com/v1/common/dto/common
+
+---
+{
+	ns0#getAccountSelectFieldsFilterChildren: {
+		Request @(MessageId: p('messageId')): {
+			AccountNumber: vars.primaryAccountNumber,
+			Credentials @(com#ProcessorUser: p('credentials.processorUser')): {
+				CardCredentials: {
+					CardNumber: p('credentials.cardCredentials.cardNumber') ++ vars.primaryAccountNumber as String
+				}
+			},
+			DeviceInformation @(DeviceType: p('deviceType'), DeviceNumber: p('deviceNumber')): null,
+			SelectableFields: {
+				CredRepSelectableFields: {
+					CredRepFields: {
+						Bureau: true,
+						CompletionCode: true,
+						CompletionDate: true,
+						CompletionTime: true,
+						Locator: true,
+						Ssn: true
+					}
+				}
+			},
+			ChildrenSearchFilter: {
+				CredRepFilter: {
+					Query: "CompletionDate >= {date:'" ++ now() as String {format: "y-MM-dd"} ++"'}"
+				}
+			}
+		}
+	}
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+					<logger level="INFO" doc:name="Logger" doc:id="7d543941-2f89-41a4-9663-7b89182ebd98" message=" External ID: #[vars.loanProcessorReq.externalId] ::  Locator Number Service Request #[payload]" />
+					<wsc:consume doc:name="Get account select fields Filter Children" doc:id="1173b412-58ee-41c3-abea-c834cb943072" config-ref="Account_Service_Config" operation="getAccountSelectFieldsFilterChildren" />
+					<logger level="INFO" doc:name="Logger" doc:id="39395365-c902-481c-89d3-80bba78ffc35" message=" External ID: #[vars.loanProcessorReq.externalId] ::  Locator Number Service Response #[payload]" />
+					<ee:transform doc:name="Transform Message" doc:id="ab7049ff-d869-4696-812a-7a81c1ffcd2a">
+			<ee:message>
+							<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+ns ns0 http://www.symxchange.generated.symitar.com/v2/account
+
+var ssn =  if(vars.isCoborrower == true) vars.loanProcessorReq.coBorrower.coBorrowerSSN as String else  vars.loanProcessorReq.primaryCustomer.primarySSN as String
+---
+using(creditRespXML=payload.body.ns0#getAccountSelectFieldsFilterChildrenResponse.SingleResponse.Account.CredRepList.*CredRep filter ($.Ssn == ssn))
+{
+	locatorNumber: creditRespXML.Locator[0] as Number default 0
+}]]></ee:set-payload>
+			</ee:message>
+				<ee:variables>
+				</ee:variables>
+		</ee:transform>
+					<set-variable value="#[payload.locatorNumber]" doc:name="Holds Locator Number" doc:id="31ae6140-bbc9-4283-a5c5-721d80412c9f" variableName="locatorNumber" />
+					<choice doc:name="Choice" doc:id="e4a8dc45-a721-445b-bab5-8b73893238c6" >
+						<when expression="#[vars.locatorNumber == 0]">
+							<scripting:execute doc:name="Sleep Time" doc:id="cb09add2-51b6-4eb3-b098-4dc23daa951d" engine="groovy">
+			<scripting:code>sleep(${sleepTime});
+System.out.print(&quot;Locator Service Sleep Time:: &quot;+ '${sleepTime}');</scripting:code>
+		</scripting:execute>
+						</when>
+					</choice>
+				</when>
+			</choice>
+		</foreach>
+		<logger level="INFO" doc:name="Logger" doc:id="1d564aa8-2e79-4364-86ab-2a73d8e87e57" message=" External ID: #[vars.loanProcessorReq.externalId] ::  Locator Number  #[vars.locatorNumber]"/>
+		<choice doc:name="Choice" doc:id="4a8bd3f7-da7a-439f-991d-2547c570ef4d" >
+			<when expression="#[vars.locatorNumber &gt; 0]">
+				<remove-variable doc:name="Remove For Each Collection" doc:id="a11e4aaa-8af2-4aa3-8852-847d70ab655e" variableName="tmpArray" />
+				<remove-variable doc:name="Remove Locator Number" doc:id="1bf407a6-0a25-442f-9ec5-b9289b5478bc" variableName="locatorNumber"/>
+				<flow-ref doc:name="Execute Credit Pull Power on" doc:id="dd49ca84-73e3-4484-92ad-736dfcd1001f" name="execute_credit_pull_power_on_Flow" />
+			</when>
+			<when expression="#[vars.locatorNumber == 0]">
+				<remove-variable doc:name="Remove For Each Collection" doc:id="169eeaf8-2a4e-4868-8074-736d4e9a5042" variableName="tmpArray"/>
+				<remove-variable doc:name="Remove Locator Number" doc:id="9eb52009-13f3-4291-8432-f37ae2bf3c30" variableName="locatorNumber"/>
+				<choice doc:name="Choice" doc:id="88fd159b-7945-4201-bf0f-3a81e8968530">
+					<when expression='#[vars.loanProcessorReq.channel == "W"]'>
+						<set-variable value="#[true]" doc:name="Varaible to Indicate Locator Number Error" doc:id="c1323855-71fa-48bb-9810-fb290e7504b8" variableName="executePowerOnError"/>
+						<flow-ref doc:name="Assign to User Queue " doc:id="1cc9a11f-c4b2-41d5-ae67-1a0c70e1af75" name="update_user_queueFlow"/>
+						<remove-variable doc:name="Remove Locator Number Error Variable" doc:id="2c3bbba2-b80c-4c13-8f94-00cf5a53e55f" variableName="executePowerOnError"/>
+						<ee:transform doc:name="Transform Message" doc:id="ad047516-3e3f-4dc6-8b58-efa5e4d00c09">
+					<ee:message>
+						<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"statusCode": 4002,
+	"statusMessage": "Could not identify Locator Number",
+	"shortAppStage": "No Valid Report",
+	"flowId": "FLOW_LN"
+	
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+						<set-variable value="#[payload]" doc:name="Hold Sales Force Input Payload" doc:id="007f7fbc-0ffb-4d74-9970-bb8da8ab2961" variableName="salesForceInput" />
+						<flow-ref doc:name="Send to Sales Force" doc:id="1e8001e5-a18f-4fe5-9f07-5ef6d455bdd2" name="send_to_sales_force_queueFlow" />
+					</when>
+				</choice>
+				<logger level="INFO" doc:name="Logger" doc:id="e413ba4a-aa7c-4f19-bda8-65896aabb8c7" message=" External ID: #[vars.loanProcessorReq.externalId] ::  No Locator Number found - Flow Ends"/>
+				<raise-error doc:name="Locator Number Zero Error" doc:id="795f1fa4-2742-4a36-bbd7-14c53815d3c1" type="FLOW:LOCATOR_NUMBER_ERROR" description="Could not identify Locator Number"/>
+
+			</when>
+		</choice>
+		<!-- <scripting:execute engine="groovy" doc:id="b2a9e9a2-940b-48e8-a399-60d99a93b6bd" doc:name="Introducing Delay">
+			<scripting:code>sleep(2000)</scripting:code>
+		</scripting:execute> -->
+	
+
+</flow>
+</mule>

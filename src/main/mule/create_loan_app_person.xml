@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:wsc="http://www.mulesoft.org/schema/mule/wsc" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/wsc http://www.mulesoft.org/schema/mule/wsc/current/mule-wsc.xsd">
+	<flow name="create_loan_app_personFlow" doc:id="33a9aef3-90dd-4b10-a5b3-181c781dc981" >
+		<set-variable value="#[payload.loanAppId]" doc:name="Loan ID" doc:id="b97024b9-2023-4407-9840-33af80d195b6" variableName="loanAppId"/>
+		<ee:transform doc:name="Create Loan AppPerson Request Transformer" doc:id="793fa147-462c-451b-acdd-ce41f2ed0e76" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/xml
+ns ns0 http://www.symxchange.generated.symitar.com/v2/account
+ns com http://www.symxchange.generated.symitar.com/v1/common/dto/common
+
+var dateOfBirth = if(vars.isCoborrower == true) vars.loanProcessorReq.coBorrower.coBorrowerDOB else vars.loanProcessorReq.primaryCustomer.primaryDOB
+var city = vars.loanProcessorReq.address.city
+var currEmpGrossMonthlyPay = if(vars.isCoborrower == true) 0 else if (vars.loanProcessorReq.primaryCustomer.primaryIncome > 0) (vars.loanProcessorReq.primaryCustomer.primaryIncome as Number / 12) as Number as String {format: "#"} else 0
+var email = if(vars.isCoborrower == true)  vars.loanProcessorReq.coBorrower.coBorrowerEmail else  vars.loanProcessorReq.primaryCustomer.primaryEmail
+var first = if(vars.isCoborrower == true) vars.loanProcessorReq.coBorrower.coBorrowerFirstName else  vars.loanProcessorReq.primaryCustomer.primaryFirstName  
+var last = if(vars.isCoborrower == true) vars.loanProcessorReq.coBorrower.coBorrowerLastName  else  vars.loanProcessorReq.primaryCustomer.primaryLastName
+var homePhone =  if(vars.isCoborrower == true)vars.loanProcessorReq.coBorrower.coBorrowerTelephone  else  vars.loanProcessorReq.primaryCustomer.primaryTelephone
+var ssn =  if(vars.isCoborrower == true) vars.loanProcessorReq.coBorrower.coBorrowerSSN else  vars.loanProcessorReq.primaryCustomer.primarySSN
+var state =  vars.loanProcessorReq.address.state
+var street = vars.loanProcessorReq.address.streetAddress1
+var zipCode = vars.loanProcessorReq.address.zip
+var personCode = if(vars.isCoborrower == true) 3 else 0
+---
+
+{
+	ns0#createLoanAppPerson: {
+		Request @(MessageId: p('messageId')): {
+			LoanAppPersonCreatableFields: {
+				AccountNumber: vars.primaryAccountNumber,
+				AddressType: 0,
+				BirthDate: (dateOfBirth) as Date {format: 'M/d/yyyy'} as String {format: 'yyyy-MM-dd'},
+				City: upper(city),
+				CurrEmpGrossMonthlyPay: currEmpGrossMonthlyPay,
+				CurrEmpMonthsEmp: 1,
+				Email: upper(email),
+				First: upper(first),
+				HomePhone: homePhone,
+				Last: upper(last),
+				Middle: "",
+				MonthsCurrAddress: 1,
+				PersonCode: personCode,
+				Ssn: ssn,
+				State: upper(state),
+				Street: upper(street),
+				Type: 0,
+				ZipCode: zipCode
+			},
+			AccountNumber:  vars.primaryAccountNumber,
+			LoanAppId: payload.loanAppId,
+			Credentials @(com#ProcessorUser: p('credentials.processorUser')): {
+				CardCredentials: {
+					CardNumber: p('credentials.cardCredentials.cardNumber') ++  vars.primaryAccountNumber as String
+				}
+			},
+			DeviceInformation @(DeviceType: p('deviceType'), DeviceNumber: p('deviceNumber')): null
+		}
+	}
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="Logger" doc:id="4286eb77-d496-4d9d-b6fa-d41b2e28e8e8" message=" External ID: #[vars.loanProcessorReq.externalId] ::  Create Loan App Person #[payload]"/>
+		<wsc:consume doc:name="Create Loan App Person" doc:id="1abd41bc-dc4d-4eb3-a280-c012dab34e9d" config-ref="Account_Service_Config" operation="createLoanAppPerson"/>
+		<logger level="INFO" doc:name="Create Loan App Person Response Logger" doc:id="82e3d054-4f55-47d0-bc29-58602bc9f8b2" message=" External ID: #[vars.loanProcessorReq.externalId] :: Create Loan App response:: #[payload]"/>
+		<ee:transform doc:name="Transform Message" doc:id="9b75f0b7-025a-4b83-b324-ea27b5670448" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/java
+ns ns0 http://www.symxchange.generated.symitar.com/v2/account
+---
+{
+	loanAppPersonLocator:payload.body.ns0#createLoanAppPersonResponse.CreateResponse.LoanAppPresonLocator,
+	loanAppId:vars.loanAppId
+
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+</mule>

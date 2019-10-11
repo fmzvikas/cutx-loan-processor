@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:os="http://www.mulesoft.org/schema/mule/os" xmlns:secure-properties="http://www.mulesoft.org/schema/mule/secure-properties"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns:cluster="http://www.mulesoft.org/schema/mule/ee/cluster"
+	xmlns:wsc="http://www.mulesoft.org/schema/mule/wsc" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/wsc http://www.mulesoft.org/schema/mule/wsc/current/mule-wsc.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/secure-properties http://www.mulesoft.org/schema/mule/secure-properties/current/mule-secure-properties.xsd
+http://www.mulesoft.org/schema/mule/os http://www.mulesoft.org/schema/mule/os/current/mule-os.xsd">
+
+	<wsc:config name="FindBy_Service_Config" doc:name="Web Service Consumer Config" doc:id="0b740b1c-5e0f-4a36-94d1-c675e18a7705">
+		<wsc:connection wsdlLocation="${symExchange.findByService.wsdlLocation}" service="${symExchange.findByService.service}" port="${symExchange.findByService.port}" address="${symExchange.findByService.address}" />
+	</wsc:config>
+	<wsc:config name="Account_Service_Config" doc:name="Web Service Consumer Config" doc:id="3caa4ae6-bffc-481e-bd99-3dbdae7d7c2a" >
+		<wsc:connection wsdlLocation="${symExchange.accountService.wsdlLocation}" service="${symExchange.accountService.service}" port="${symExchange.accountService.port}" address="${symExchange.accountService.address}"/>
+	</wsc:config>
+	<wsc:config name="power_on_service_config" doc:name="Web Service Consumer Config" doc:id="42b5558e-e41c-485e-9464-b1d9d69d21d0" >
+		<wsc:connection wsdlLocation="${symExchange.executePowerOn.wsdlLocation}" service="${symExchange.executePowerOn.service}" port="${symExchange.executePowerOn.port}" address="${symExchange.executePowerOn.address}" />
+	</wsc:config>
+	<configuration-properties doc:name="Configuration properties"
+		doc:id="8d1c9b1f-cd99-4609-8943-8f2f7cbbd695" file="config/configuration.${env}.yaml" doc:description="application properties"/>
+	<http:request-config name="salesforce_http_request_configuration" doc:name="HTTP Request configuration" doc:id="e6aac278-6fe1-4500-a9b9-291dc183603a" doc:description="Sales force endpoint configuration">
+		<http:request-connection protocol="HTTPS" host="${salesforce.tokenEndpoint}" />
+	</http:request-config>
+	<configuration-properties doc:name="Configuration properties" doc:id="c1030698-56cf-431b-b4c2-63df913676db" file="config/salesforce.configuration.${env}.yaml" doc:description="sales force connection details"/>
+	<os:object-store name="tokenStore" doc:name="Object store" doc:id="aed00cd6-baca-461a-b722-0ca00f4bf418" persistent="false" maxEntries="2" entryTtl="90" entryTtlUnit="MINUTES" expirationInterval="50"/>
+</mule>

@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:wsc="http://www.mulesoft.org/schema/mule/wsc" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/wsc http://www.mulesoft.org/schema/mule/wsc/current/mule-wsc.xsd">
+	<flow name="create_loan_appFlow" doc:id="904dfdbc-2e1d-40f7-bd8d-081c6abd864b" >
+		<ee:transform doc:name="Create Loan App Request Transformer" doc:id="a14ad027-4b61-4950-816a-47865469b5cc" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/xml
+ns ns0 http://www.symxchange.generated.symitar.com/v2/account
+ns com http://www.symxchange.generated.symitar.com/v1/common/dto/common
+
+var firstDueDate = now() + |P2M|
+--- 
+{
+	ns0#createLoanApp: {
+		Request @(MessageId: p('messageId')): {
+			LoanAppCreatableFields: {
+				Branch: if (vars.loanProcessorReq.channel == "W") 3000  else	vars.loanProcessorReq.branch,
+				CreatedAtBranch: if(vars.loanProcessorReq.channel == "W") 3000 else vars.loanProcessorReq.createdAtBranch,
+				CreatedByUser: if(vars.loanProcessorReq.channel == "W") 825 else vars.loanProcessorReq.createdByUser,
+				DueDay1: 5,
+				DueDay2: 20,
+				FirstDueDate: (firstDueDate as String {format: "yyyy"} ++ "-" ++ firstDueDate as String {format: "MM"} ++ "-" ++ "01"),
+				LoanAmount: vars.loanProcessorReq.financeAmount default 20000,
+				LoanDescription: "2 - AUTO/MC/VESSEL/RV/OTHER",
+				LoanType: 1101,
+				TermMonths: 60,
+				Type: 2,
+				UserQueue: 4030,
+				Id: if(payload.loanIds == null) 0 else (max(payload.loanIds) + 1)
+			},
+			AccountNumber: vars.primaryAccountNumber,
+			Credentials @(com#ProcessorUser: p('credentials.processorUser')): {
+				CardCredentials: {
+					CardNumber: p('credentials.cardCredentials.cardNumber') ++ vars.primaryAccountNumber as String
+				}
+			},
+			DeviceInformation @(DeviceType: p('deviceType'), DeviceNumber: p('deviceNumber')): null
+		}
+	}
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="CreateLoanApp Request Log" doc:id="6411d36b-54b6-4529-a8ff-00b79543570f" message=" External ID: #[vars.loanProcessorReq.externalId] ::  Create Loan App request:: #[payload]"/>
+		<wsc:consume doc:name="Create Loan App " doc:id="41fe3061-c2b4-4698-853c-e2f11c97af8e" config-ref="Account_Service_Config" operation="createLoanApp"/>
+		<ee:transform doc:name="Transform Message" doc:id="4e3ee320-d1a5-4c0e-a3bb-2cb3849403ca" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/java
+ns ns0 http://www.symxchange.generated.symitar.com/v2/account
+---
+{
+	loanAppId:payload.body.ns0#createLoanAppResponse.CreateResponse.LoanAppId,
+	accountNumber: vars.primaryAccountNumber
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="Logger" doc:id="dc17c30e-a71a-43e6-9de4-940d0391c767" message=" External ID: #[vars.loanProcessorReq.externalId] ::  Create Loan App response #[payload]"/>
+	</flow>
+</mule>

@@ -1,0 +1,28 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "type": "object",
+  "properties": {
+    "loanInformation": {
+      "type": "object",
+      "properties": {
+        "approvedAmount": {
+          "type": "number"
+        },
+        "debtRatio": {
+          "type": "number"
+        },
+        "CreditScore": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "approvedAmount",
+        "debtRatio",
+        "CreditScore"
+      ]
+    }
+  },
+  "required": [
+    "loanInformation"
+  ]
+}

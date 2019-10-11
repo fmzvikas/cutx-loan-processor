@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:wsc="http://www.mulesoft.org/schema/mule/wsc"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/wsc http://www.mulesoft.org/schema/mule/wsc/current/mule-wsc.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+	<flow name="create_prospect_accountFlow" doc:id="21a97c25-53ec-4a14-9851-edbe96566de9" >
+		<ee:transform doc:name="Create Prospect Account Request Transformer" doc:id="5812edaf-0439-4020-860c-93d7537c696c" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/xml
+ns ns0 http://www.symxchange.generated.symitar.com/v2/account
+ns com http://www.symxchange.generated.symitar.com/v1/common/dto/common
+---
+{
+	ns0#createAccount: {
+		Request @(MessageId: p('messageId')): {
+			AccountCreatableFields: {
+				Type: p('accountCreatableFields.type')
+			},
+			NameCreatableFields: {
+				Last: upper(vars.loanProcessorReq.primaryCustomer.primaryLastName),
+				Ssn: vars.loanProcessorReq.primaryCustomer.primarySSN
+			},
+			Credentials @(com#ProcessorUser: p('credentials.processorUser')): {
+				AdministrativeCredentials: {
+					Password: p('credentials.administrativeCredentials.password')
+				}
+			},
+			DeviceInformation @(DeviceType: p('deviceType'), DeviceNumber: p('deviceNumber')): null
+		}
+	}
+	
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="Logger" doc:id="4455f757-8e6b-44f1-ae89-d89222a1c894" message=" External ID: #[vars.loanProcessorReq.externalId] :: Create Prospect Account Request: #[payload]"/>
+		<wsc:consume doc:name="Consume" doc:id="d4ddb51d-858d-4bbd-a661-928bc09923a6" config-ref="Account_Service_Config" operation="createAccount"/>
+		<logger level="INFO" doc:name="Logger" doc:id="f294e998-9a72-4265-914c-f2fecc1b1dbb" message=" External ID: #[vars.loanProcessorReq.externalId] :: Create Prospect Account Response: #[payload]"/>
+		<ee:transform doc:name="Transform Message" doc:id="d5555eda-e5fe-4b52-abc2-9e2b94e60632" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/java
+ns ns0 http://www.symxchange.generated.symitar.com/v2/account
+---
+{
+	accountNumber: payload.body.ns0#createAccountResponse.CreateResponse.AccountNumber default 0 as Number
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+</mule>

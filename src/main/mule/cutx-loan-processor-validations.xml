@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:validation="http://www.mulesoft.org/schema/mule/validation" xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mule/validation/current/mule-validation.xsd">
+	<flow name="cutx-loan-processor-validationsFlow" doc:id="58226ed6-186b-43d4-b1ba-1df496030d76" >
+		<validation:is-not-blank-string doc:name="Is channel not blank string" doc:id="151258eb-394f-4b74-98e2-8393a8f0b10f" value="#[payload.channel]" message="Channel cannot be blank"/>
+		<validation:is-number doc:name="Is financeAmount number" doc:id="3a4de236-53a0-44fc-9e80-cac690513bd6" value="#[payload.financeAmount]" minValue="5000" message="Finance amount cannot be lessthan 5000" numberType="DOUBLE"/>
+		<validation:is-not-null doc:name="Is hascoborrower not null" doc:id="97960fab-8a0d-4fe1-b776-742c2bdb8a31" value="#[payload.hascoborrower]" message="hascoborrower fileds cannot be null"/>
+		<validation:is-not-blank-string doc:name="Is primaryFirstName not blank string" doc:id="82db33e2-2e4c-432c-8253-2d41ebb18a39" value="#[payload.primaryCustomer.primaryFirstName]" message="PrimaryFirstName cannot be blank"/>
+		<validation:is-not-blank-string doc:name="Is primaryLastName not blank string" doc:id="e406516e-7f2c-4e97-874f-c7e891c8fd59" value="#[payload.primaryCustomer.primaryLastName]" message="PrimaryLastName cannot be blank"/>
+		<validation:is-not-blank-string doc:name="Is primaryTelephone not blank string" doc:id="f3302e4d-cf08-4234-a4ba-ee6a87fde1c7" value="#[payload.primaryCustomer.primaryTelephone]" message="PrimaryTelephone cannot be blank"/>
+		<validation:is-not-blank-string doc:name="Is primarySSN not blank string" doc:id="0dd487bc-c700-4b21-a946-8acf62ad5010" value="#[payload.primaryCustomer.primarySSN]" message="PrimarySSN cannot be blank"/>
+		<validation:is-email doc:name="Is email" doc:id="e4073b2f-3af2-430a-8765-344677648987" email="#[payload.primaryCustomer.primaryEmail]" message="primaryEmail is not valid email"/>
+		<validation:is-not-blank-string doc:name="Is primaryDOB not blank string" doc:id="eb08f999-821c-47d3-a58f-09575cc25da5" value="#[payload.primaryCustomer.primaryDOB]" message="primaryDOB can not be blank"/>
+		<validation:is-not-null doc:name="primaryCreditPullCheck Is not null" doc:id="8f158102-79b6-4d68-997c-6a59ba9b0801" value="#[payload.primaryCustomer.primaryCreditPullCheck]" message="primaryCreditPullCheck cannot be null"/>
+		<validation:is-number doc:name="primaryIncome Is number" doc:id="20396a89-4bca-42b2-9ef9-ed4fcc1efdda" value="#[payload.primaryCustomer.primaryIncome]" numberType="DOUBLE" message="primaryIncome is not valid" minValue="1"/>
+		<validation:is-not-blank-string doc:name="streetAddress1 Is not blank string" doc:id="65d31050-ad3a-47fc-8195-227880a7b71a" value="#[payload.address.streetAddress1]" message="streetAddress1 cannot be blank"/>
+		<validation:is-not-blank-string doc:name="city Is not blank string" doc:id="02eb145b-fa6c-4b92-833f-e711a9987812" value="#[payload.address.city]" message="City cannot be blank"/>
+		<validation:is-not-blank-string doc:name="state Is not blank string" doc:id="6634d90b-ecc0-4317-aa0c-55c3a308fca1" value="#[payload.address.state]" message="State cannot be blank"/>
+		<validation:is-not-blank-string doc:name="zip Is not blank string" doc:id="bfd7ea3e-16ae-43ad-99d5-e0d11da8c72b" value="#[payload.address.zip]" message="Zip cannot be blank"/>
+		<choice doc:name="Choice" doc:id="22059658-e72f-4cc8-8c22-a0aa3ad1f33d" >
+			<when expression="#[payload.hasCoBorrower == true]">
+				<flow-ref doc:name="Flow Reference" doc:id="4b2f9c4e-47b0-4697-89f5-bf04615a6688" name="cutx-loan-processor-validations_coborrower_sub_flow"/>
+			</when>
+		</choice>
+		<choice doc:name="Choice" doc:id="63bff550-0d77-401a-b82b-26c9d351e561" >
+			<when expression='#[payload.channel == "SF"]'>
+				<flow-ref doc:name="Flow Reference" doc:id="6790e913-599c-403f-84a4-33900d7b8e40" name="cutx-loan-processor-validations_sales_force_sub_flow"/>
+			</when>
+			<otherwise >
+				<flow-ref doc:name="Flow Reference" doc:id="50f45c42-7975-43e3-a712-4f94162c8c14" name="cutx-loan-processor-validations_web_sub_flow"/>
+			</otherwise>
+		</choice>
+		<error-handler >
+			<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="573622ae-9d85-47f3-9f10-a8b7a4c9580e" type="ANY"/>
+		</error-handler>
+	</flow>
+	<sub-flow name="cutx-loan-processor-validations_coborrower_sub_flow" doc:id="e481e5b4-3433-40c2-b763-38fe600b1a1e">
+		<validation:is-not-blank-string doc:name="Is coBorrowerFirstName not blank string" doc:id="d88f0162-d4d8-4aa0-9524-9d1ffe167704" value="#[payload.coBorrower.coBorrowerFirstName]" message="coBorrowerFirstName cannot be blank"/>
+		<validation:is-not-blank-string doc:name="Is coBorrowerLastName not blank string" doc:id="4e031b3e-8f67-4728-ba70-61810c06b9a3" value="#[payload.coBorrower.coBorrowerLastName]" message="coBorrowerLastName cannot be blank"/>
+		<validation:is-not-blank-string doc:name="Is coBorrowerTelephone not blank string" doc:id="059e099b-7d50-42cd-a333-ce1755cb9027" value="#[payload.coBorrower.coBorrowerTelephone]" message="coBorrowerTelephone  cannot be blank"/>
+		<validation:is-not-blank-string doc:name="Is coBorrowerSSN not blank string" doc:id="27c59382-8873-43da-9f0f-f8726256f405" value="#[payload.coBorrower.coBorrowerSSN]" message="coBorrowerSSN  cannot be blank"/>
+		<validation:is-email doc:name="Is email" doc:id="291b5065-894f-4f96-863c-d36390b54f43" email="#[payload.coBorrower.coBorrowerEmail]" message="coBorrowerEmail is not valid email"/>
+		<validation:is-not-blank-string doc:name="Is coBorrowerDOB not blank string" doc:id="54e8aa22-76aa-42ed-836d-311fae665c33" value="#[payload.coBorrower.coBorrowerDOB]" message="coBorrowerDOB can not be blank"/>
+		<validation:is-not-null doc:name="coBorrowerCreditPullCheck Is not null" doc:id="b7b449df-3740-491c-a1cf-a6d46b6869d3" value="#[payload.coBorrower.coBorrowerCreditPullCheck]" message="coBorrowerCreditPullCheck cannot be null"/>
+	
+</sub-flow>
+	<sub-flow name="cutx-loan-processor-validations_web_sub_flow" doc:id="a3182414-7a29-4bf1-8ed1-8fef866e6cc1" >
+		<validation:is-not-blank-string doc:name="Is externalId not blank string" doc:id="fd757113-fef8-47c3-a509-1f824d09f4a6" value="#[payload.externalId]" message="externalId cannot be blank"/>
+	</sub-flow>
+	<sub-flow name="cutx-loan-processor-validations_sales_force_sub_flow" doc:id="8cc03b08-dbe0-4c16-ac17-4ce583a19cc9" >
+		<validation:is-not-blank-string doc:name="Is CreatedAtBranch not blank string" doc:id="caee4170-06d7-40a1-8e14-d441f5d1b10d" value="#[payload.createdAtBranch]" message="Created At Branch cannot be blank"/>
+		<validation:is-not-blank-string doc:name="Is Created By User not blank string" doc:id="c4d69640-13d4-4552-8b9c-881a7a13d26a" value="#[payload.createdByUser]" message="Created By User  cannot be blank"/>
+		<validation:is-not-blank-string doc:name="Is operatorId not blank string" doc:id="085c53a5-bae6-42b4-9756-48e894f184aa" value="#[payload.operatorId]" message="operatorId cannot be blank"/>
+		<validation:is-not-blank-string doc:name="Is branch not blank string" doc:id="9a880106-6b28-4fe5-9890-fec149a75d03" value="#[payload.branch]" message="branch cannot be blank"/>
+		<validation:is-not-blank-string doc:name="Is sfShortAppId not blank string" doc:id="f8aaf9c2-852f-45b4-abc7-f96333c7bb86" value="#[payload.sfShortAppId]" message="sfShortAppId cannot be blank"/>
+	</sub-flow>
+</mule>

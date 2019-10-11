@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:validation="http://www.mulesoft.org/schema/mule/validation"
+	xmlns:xml-module="http://www.mulesoft.org/schema/mule/xml-module"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:wsc="http://www.mulesoft.org/schema/mule/wsc" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/wsc http://www.mulesoft.org/schema/mule/wsc/current/mule-wsc.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mule/validation/current/mule-validation.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd">
+	
+	<flow name="find_primary_accountnumberFlow" doc:id="ad6d1b63-cc03-44e9-9bf1-e918cc624c4c" >
+		<set-variable value="#[[]]" doc:name="Primary Account Numbers" doc:id="5c00acc6-bbb6-4ae6-90b2-88b379b9e596" variableName="primaryAccountNumbers"/>
+		<foreach doc:name="For Each Account Number " doc:id="0760e45f-3219-42a6-9544-17e7570e15c7" collection="payload.primaryAccountNumbers">
+			<logger level="INFO" doc:name="Logger" doc:id="3c6b645f-8977-4272-8690-c1c81f854205" message=" External ID: #[vars.loanProcessorReq.externalId] :: For each Primary Account Number #[payload]"/>
+			<set-variable doc:name="Account Number" doc:id="b9d7f4b2-4e02-4655-8071-e2475328dbff" variableName="tmpAccountNumber" value="#[payload]"/>
+			<ee:transform doc:name="Transform Message" doc:id="e0a91393-eefd-405d-9867-d2276b230a84">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/xml
+ns ns0 http://www.symxchange.generated.symitar.com/v2/account
+ns com http://www.symxchange.generated.symitar.com/v1/common/dto/common
+
+var primaryCustDOB = vars.loanProcessorReq.primaryCustomer.primaryDOB as Date {format: 'M/d/yyyy'} as String {format: 'yyyy-MM-dd'}
+---
+{
+	ns0#searchNameSelectFields: {
+		Request @(MessageId: p('messageId')): {
+			AccountNumber: vars.tmpAccountNumber,
+			Credentials @(com#ProcessorUser: p('credentials.processorUser')): {
+				CardCredentials: {
+					CardNumber: p('credentials.cardCredentials.cardNumber') ++ vars.tmpAccountNumber
+				}
+			},
+			DeviceInformation @(DeviceType: p('deviceType'), DeviceNumber: p('deviceNumber')): null,
+			SelectableFields: {
+				NameFields: {
+					BirthDate: true,
+					City: true,
+					First: true,
+					Last: true,
+					Middle: true,
+					Ssn: true,
+					State: true,
+					Street: true,
+					Type: true,
+					ZipCode: true
+				}
+			},
+			SearchFilter: {
+				Query: "Type=0 and Ssn ='" ++ vars.loanProcessorReq.primaryCustomer.primarySSN as String ++ "'"
+			}
+		}
+	}
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+			<logger level="INFO" doc:name="Find Primary Account Request" doc:id="7308bf1b-732c-4e7c-9e0b-4f9552712979" message=" External ID: #[vars.loanProcessorReq.externalId] :: Find Primary Account Request:: #[payload]"/>
+			<flow-ref doc:name="Primary Account Number Flow reference" doc:id="505b5cb5-fa96-44f1-8514-f5f8c70fbaea" name="find_primary_accountnumber_Sub_Flow" target="result" targetValue="#[payload]"/>
+			<choice doc:name="Choice" doc:id="92e6f10d-b7c0-4469-9e75-e9b9b4f06e83" >
+				<when expression='#[vars.result != ""]'>
+					<ee:transform doc:name="Transform Message" doc:id="fe6fa99d-44ba-4394-b08e-c3565528ce63">
+			<ee:message>
+			</ee:message>
+					<ee:variables>
+						<ee:set-variable variableName="primaryAccountNumbers"><![CDATA[%dw 2.0
+output application/java 
+
+---
+
+vars.primaryAccountNumbers + vars.result
+	
+
+]]></ee:set-variable>
+					</ee:variables>
+		</ee:transform>
+				</when>
+			</choice>
+			<logger level="INFO" doc:name="" doc:id="61764f25-97dd-48ef-992f-196cb45d26a9" message=" External ID: #[vars.loanProcessorReq.externalId] :: Primary Account  #[vars.primaryAccountNumbers]"/>
+		</foreach>
+		<set-payload value="#[vars.primaryAccountNumbers]" doc:name="Set Payload" doc:id="9437ca00-5b5c-4cd3-af38-2155e0c1ab42" />
+		<remove-variable doc:name="Remove Variable Primary Account Numbers" doc:id="c9b14fa2-507a-4051-8f0f-c00ea1584cb6" variableName="primaryAccountNumbers"/>
+		<remove-variable doc:name="Remove Variable Account Number" doc:id="4a595745-6b84-447e-828a-76627c7803fc" variableName="tmpAccountNumber"/>
+		<logger level="INFO" doc:name="Logger" doc:id="c3572308-5ee0-472a-8dec-2f0a0346bb42" message=" External ID: #[vars.loanProcessorReq.externalId] :: All Primary Accounts: #[payload]"/>
+	</flow>
+	<sub-flow name="find_primary_accountnumber_Sub_Flow" doc:id="5132b3a9-04ab-4250-af86-9130000ae013" >
+		<wsc:consume operation="searchNameSelectFields" doc:name="Find Primary Account Service" doc:id="3e690373-e440-42e0-a7c6-5cf05b38aa7d" config-ref="Account_Service_Config" />
+		<ee:transform doc:name="Transform Message" doc:id="eb146514-00c2-4561-8113-25f078e8a5d0" >
+			<ee:message >
+				<ee:set-attributes ><![CDATA[%dw 2.0
+output application/java
+ns ns0 http://www.symxchange.generated.symitar.com/v2/account
+---
+{
+	BirthDate: payload.body.ns0#searchNameSelectFieldsResponse.PluralResponse.NameList.Name.BirthDate,
+	City: payload.body.ns0#searchNameSelectFieldsResponse.PluralResponse.NameList.Name.City,
+	First: payload.body.ns0#searchNameSelectFieldsResponse.PluralResponse.NameList.*Name.First,
+	Last: payload.body.ns0#searchNameSelectFieldsResponse.PluralResponse.NameList.*Name.Last,
+	Middle: payload.body.ns0#searchNameSelectFieldsResponse.PluralResponse.NameList.*Name.Middle,
+	Ssn: payload.body.ns0#searchNameSelectFieldsResponse.PluralResponse.NameList.*Name.Ssn,
+	State: payload.body.ns0#searchNameSelectFieldsResponse.PluralResponse.NameList.*Name.State,
+	Street: payload.body.ns0#searchNameSelectFieldsResponse.PluralResponse.NameList.*Name.Street,
+	LoanType: payload.body.ns0#searchNameSelectFieldsResponse.PluralResponse.NameList.*Name.Type,
+	ZipCode: payload.body.ns0#searchNameSelectFieldsResponse.PluralResponse.NameList.*Name.ZipCode
+}]]></ee:set-attributes>
+			</ee:message>
+			<ee:variables >
+			</ee:variables>
+		</ee:transform>
+		<choice doc:name="Choice" doc:id="be4ef485-1f0b-4ba0-8818-6f03bcd961a4" >
+			<when expression="#[(attributes.Last != '' and attributes.Last != null) or (attributes.BirthDate != '' and attributes.BirthDate != null) 
+			or (attributes.City != '' and attributes.City != null) or (attributes.First != '' and attributes.First != null) or (attributes.Middle != '' and attributes.Middle != null)
+			or (attributes.Ssn != '' and attributes.Ssn != null) or (attributes.State != '' and attributes.State != null)
+			or (attributes.LoanType != '' and attributes.LoanType != null) or (attributes.ZipCode != '' and attributes.ZipCode != null)]">
+				<set-payload value="#[vars.tmpAccountNumber]" doc:name="Set Payload" doc:id="de370347-7642-4653-99be-de53fa92d905" />
+
+			</when>
+			<otherwise>
+				<set-payload value='#[""]' doc:name="Set Payload" doc:id="b0e11ace-6a0e-4a37-9410-4da7186ad49f" />
+
+			</otherwise>
+		</choice>
+	</sub-flow>
+</mule>

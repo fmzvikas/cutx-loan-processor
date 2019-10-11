@@ -1,0 +1,38 @@
+messageId: "1"
+deviceType: "DB$AU$TIN715"
+deviceNumber: "1715"
+credentials:
+  administrativeCredentials:
+      password: "Uu2T7CEyxp89FiqQLMeF"
+  processorUser: "825"
+  cardCredentials:
+      cardNumber: "20741"
+searchFilter:
+  query:
+      type: "0"
+accountCreatableFields:
+  type: "99"
+
+userQueue:
+    denied: "9999"
+    pendingOrApprovedWithOutOpIdChannelSF: "4029"
+    pendingOrApprovedWithOutOpIdChannelWeb: "4030"
+    executePowerOnErrorQueue: "4030"
+    default: "4024"
+
+symExchange:
+    accountService:
+      port: AccountServicePort
+      address: http://10.8.7.240:8086/SymXchange/v2/account
+      service: AccountService
+      wsdlLocation: http://10.8.7.240:8086/SymXchange/v2/account?wsdl
+    findByService:
+      port: FindByServicePort
+      address: http://10.8.7.240:8086/SymXchange/findby
+      service: FindByService
+      wsdlLocation: http://10.8.7.240:8086/SymXchange/findby?wsdl
+    executePowerOn:
+      port: PowerOnServicePort
+      address: http://10.8.7.240:8086/SymXchange/poweron
+      service: PowerOnService
+      wsdlLocation: http://10.8.7.240:8086/SymXchange/poweron?wsdl

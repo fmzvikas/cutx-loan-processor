@@ -1,0 +1,231 @@
+#%RAML 1.0
+baseUri: http://cutx-loan-processor.us-w1.cloudhub.io/ # 
+title: Loan Processor
+version: v1
+traits:
+  correlation-id-required: 
+    headers: 
+      uuid:
+          description: |
+            A unique identifier, e.g. UUID, for end-to-end request tracing. Responses return the same identifier used in requests.
+          displayName: Correlation ID
+          required: true
+          type: string
+types:
+  channel:
+    type: string
+    description: Allowed values are W(Web), SF(Sales Force), or M(Mobile)
+    default: W
+  externalId:
+    type: string
+    description: External ID
+  sfShortAppId:
+    type: string
+    description: Generated ID from Salesforce ShortApp Process
+  branch:
+    type: string
+  createdAtBranch:
+    type: string
+  createdByUser:
+    type: string
+  operatorId:
+    type: string  
+  hasCoBorrower:
+    type: boolean
+    description: Has Coborrower
+  financeAmount:
+    type: number
+    description: Finance Amount  
+  primaryCustomer:
+    type: object
+    properties:
+      primaryFirstName: string
+      primaryLastName: string
+      primaryEmail: string
+      primaryTelephone: string
+      primaryCreditPullCheck: boolean
+      primarySSN: string
+      primaryDOB: string
+      primaryIncome: number
+  coBorrower:
+    type: object
+    properties:
+      coBorrowerFirstName: string
+      coBorrowerLastName: string
+      coBorrowerEmail: string
+      coBorrowerTelephone: string
+      coBorrowerCreditPullCheck: boolean
+      coBorrowerSSN: string
+      coBorrowerDOB: string
+      coBorrowerIncome: number
+  address:
+    type: object
+    properties:
+      streetAddress1: string
+      streetAddress2?: string
+      city: string
+      state: string
+      zip: string
+  utm_campaign:
+    type: string
+    description: campiaign name
+  utm_content:
+    type: string
+    description: campiaign content  
+  utm_medium:
+    type: string
+    description: campiaign medium  
+  utm_source:
+    type: string
+    description: campiaign source  
+  utm_term:
+    type: string
+    description: campiaign term
+      
+  loanEligibilityRequest:
+    type: object
+    properties:
+      channel: channel 
+      externalId?: externalId
+      operatorId?: operatorId
+      sfShortAppId?: sfShortAppId
+      branch?: branch
+      createdAtBranch?: createdAtBranch
+      createdByUser?: createdByUser
+      hasCoBorrower: hasCoBorrower
+      financeAmount: financeAmount
+      primaryCustomer: primaryCustomer 
+      coBorrower?: coBorrower
+      address: address
+      utm_campaign?: utm_campaign
+      utm_content?: utm_content
+      utm_medium?: utm_medium
+      utm_source?: utm_source
+      utm_term?: utm_term
+      
+  loanEligibilityResponse:
+    type: object
+    properties:
+      statuscode: number
+      externalId: string
+      loanStatus: 
+        type: object
+        properties: 
+          approvedAmount: number
+          requestedAmount: number
+          status: string
+ 
+/cutx:
+  /loan/eligibilty:
+    post:
+      description: "Loan Eligibility Processor" 
+      is: [correlation-id-required]
+      body:
+        application/json:
+          description: Customer Details
+          type: loanEligibilityRequest
+      responses:              
+        200:
+          body:
+            application/json:
+              description: Returns Loan Eligibility Status
+              examples: 
+                web: | 
+                  {
+                    "statuscode": 200,
+                    "externalId": "externalId",
+                    "loanStatus": 
+                      {
+                        "approvedAmount": 30000,
+                        "requestedAmount": 1000,
+                        "status": "Approved"
+                    }
+                  }  
+                salesforce: | 
+                  {
+                    "statuscode": 200,
+                    "sfShortAppId": "sfShortAppId",
+                    "flowId": "flowId",
+                    "loanStatus": 
+                      {
+                        "accountId": 1234,
+                        "loanAppId": 36987,
+                        "dti": 12.56,
+                        "creditScore": 890,
+                        "intrestRate": 4.5,
+                        "approvedAmount": 30000,
+                        "requestedAmount": 1000,
+                        "status": "Approved"
+                      }
+                  }
+                web_salesforce: | 
+                  {
+                    "statuscode": 200,
+                    "sfShortAppId": "sfShortAppId",
+                    "flowId": "flowId",                    
+                    "hasCoborrower": true,
+                    "primaryCustomer": 
+                      {
+                        "primaryFirstName": "primaryFirstName",
+                        "primaryLastName": "lastname",
+                        "primaryEmail": "example@gmail.com",
+                        "primaryTelephone": "919-112-1236",
+                        "primaryCreditPullCheck": true,
+                        "primarySSN": "833655069",
+                        "primaryDOB": "11/12/1975",
+                        "primaryStreetAddress1": "111 REMINGTON LN",
+                        "primaryStreetAddress2": "string",
+                        "primaryCity": "WEATHERFORD",
+                        "primaryState": "TX",
+                        "primaryZip": "76085-3833",
+                        "primaryIncome": 14500
+                      },
+                      "coBorrower": 
+                      {
+                        "coBorrowerFirstName": "coBorrowerFirstName",
+                        "coBorrowerLastName": "coBorrowerLastName",
+                        "coBorrowerEmail": "coBorrowerEmail@gmail.com",
+                        "coBorrowerTelephone": "817-555-5555",
+                        "coBorrowerCreditPullCheck": true,
+                        "coBorrowerSSN": "452111110",
+                        "coBorrowerDOB": "06/07/1975",
+                        "coBorrowerStreetAddress1": "888 REMINGTON LN",
+                        "coBorrowerStreetAddress2": "string",
+                        "coBorrowerCity": "WEATHERFORD",
+                        "coBorrowerState": "TX",
+                        "coBorrowerZip": "76085-3833",
+                        "coBorrowerIncome": 12500
+                      },
+                      "loanStatus": 
+                      {
+                          "accountId": 1234,
+                          "loanAppId": 36987,
+                          "dti": 12.56,
+                          "creditScore": 890,
+                          "intrestRate": 4.5,
+                          "approvedAmount": 30000,
+                          "requestedAmount": 1000,
+                          "status": "Approved"
+                      }
+                  }    
+                                 
+        204:
+          description: No Records Found
+          body:
+            application/json:
+              example: |
+                {
+                  "statuscode": 204,
+                  "statusMessage": "No Records found matching SSN",
+                  "loanApprovedAmount": -1
+                }
+        400:
+          description: Bad Request
+          body:
+            application/json:
+              example: |
+                {
+                  "statuscode": 400,
+                  "statusMessage": "Invalid Request",
+                  "loanApprovedAmount": -1
+                }

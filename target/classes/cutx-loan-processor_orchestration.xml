@@ -1,0 +1,1356 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns:api-gateway="http://www.mulesoft.org/schema/mule/api-gateway"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:scripting="http://www.mulesoft.org/schema/mule/scripting"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:apikit="http://www.mulesoft.org/schema/mule/mule-apikit"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd http://www.mulesoft.org/schema/mule/mule-apikit http://www.mulesoft.org/schema/mule/mule-apikit/current/mule-apikit.xsd 
+http://www.mulesoft.org/schema/mule/scripting http://www.mulesoft.org/schema/mule/scripting/current/mule-scripting.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/api-gateway http://www.mulesoft.org/schema/mule/api-gateway/current/mule-api-gateway.xsd">
+	<http:listener-config
+		name="cutx-loan-processor_orchestration-httpListenerConfig">
+		<http:listener-connection host="0.0.0.0"
+			port="8081"/>
+	</http:listener-config>
+	<apikit:config name="cutx-loan-processor_orchestration-config"
+		raml="cutx-loan-processor_orchestration.raml" outboundHeadersMapName="outboundHeaders"
+		httpStatusVarName="httpStatus" />
+	<configuration doc:name="Configuration"
+		doc:id="9536fd54-3b73-4b15-8ae0-bb431ad5f207" defaultErrorHandler-ref="cutx-loan-processor_orchestrationError_Handler" />
+	<error-handler name="cutx-loan-processor_orchestrationError_Handler"
+		doc:id="51648c14-16b0-4d51-9776-c35be6f94c77">
+		<on-error-continue enableNotifications="true"
+			logException="true" doc:name="On Error Propogate" type="APP:BAD_REQUEST">
+			<logger level="INFO" doc:name="Logger"
+				doc:id="16fde2ea-51e2-4660-87f2-514bddf5605a" message="Bad Request Error Occurred" />
+			<choice doc:name="Choice" doc:id="1d847af7-e41a-4da8-89a5-436db31bd1d7">
+				<when expression='#[payload.channel == "SF"]'>
+					<ee:transform doc:name="Transform Message"
+						doc:id="28cf0f57-514d-4799-b9a4-aa7d71c5c74f">
+						<ee:message>
+							<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"statusCode": 400,
+	"sfShortAppId":payload.sfShortAppId default "",
+	"flowId": "NA",
+	"shortAppStage": error.description,
+	"app_ref_num": vars.appRefrenceNumber default 0,
+	"loanStatus": {
+		"approvedAmount": 0,
+		"requestedAmount": payload.financeAmount default 0,
+		"status": "",
+		"accountId": 0,
+		"loanAppId":0,
+		"dti": 0,
+		"creditScore": 0,
+		"intrestRate": 0
+	}
+}]]></ee:set-payload>
+						</ee:message>
+					</ee:transform>
+				</when>
+				<otherwise>
+					<ee:transform xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+						xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd"
+						doc:id="3ba1a631-b883-45e8-9a1f-488af6b68e42">
+						<ee:message>
+							<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"statusCode":400,
+	"externalId": payload.externalId default 0,
+	"loanStatus":{
+		"approvedAmount":0,
+		"requestedAmount": payload.financeAmount default 0,
+		"status": error.description default ""
+	}
+}]]></ee:set-payload>
+						</ee:message>
+						<ee:variables>
+							<ee:set-variable variableName="httpStatus"><![CDATA[400]]></ee:set-variable>
+						</ee:variables>
+					</ee:transform>
+				</otherwise>
+			</choice>
+		</on-error-continue>
+		<on-error-continue type="APIKIT:NOT_FOUND"
+			enableNotifications="true" logException="true">
+			<choice doc:name="Choice" doc:id="8172fad7-42fa-4d01-b976-49be94b87dbd">
+				<when expression='#[payload.channel == "SF"]'>
+					<ee:transform doc:name="Transform Message"
+						doc:id="576887da-da3f-4a1a-8f2c-c03588a94950">
+						<ee:message>
+							<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	
+	"statusCode": 404,
+	"sfShortAppId":payload.sfShortAppId default "",
+	"flowId": "NA",
+	"shortAppStage": "NA",
+	"app_ref_num": vars.appRefrenceNumber default 0,
+	"loanStatus": {
+		"approvedAmount": 0,
+		"requestedAmount": payload.financeAmount default 0,
+		"status": "Resource not Found",
+		"accountId": 0,
+		"loanAppId":0,
+		"dti": 0,
+		"creditScore": 0,
+		"intrestRate": 0
+	}
+}]]></ee:set-payload>
+						</ee:message>
+					</ee:transform>
+				</when>
+				<otherwise>
+					<ee:transform xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+						xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd"
+						doc:id="21187eb2-aaa3-472f-8946-d59c0cf7d564">
+						<ee:message>
+							<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"statusCode":404,
+	"externalId": payload.externalId default 0,
+	"loanStatus":{
+		"approvedAmount":0,
+		"requestedAmount": payload.financeAmount default 0,
+		"status": "Resource not Found"
+	}
+}]]></ee:set-payload>
+						</ee:message>
+						<ee:variables>
+							<ee:set-variable variableName="httpStatus"><![CDATA[404]]></ee:set-variable>
+						</ee:variables>
+					</ee:transform>
+				</otherwise>
+			</choice>
+		</on-error-continue>
+		<on-error-continue type="APIKIT:METHOD_NOT_ALLOWED"
+			enableNotifications="true" logException="true">
+			<choice doc:name="Choice" doc:id="bc5feb2f-0e8f-4adf-aa7a-9c635b1c542b">
+				<when expression='#[payload.channel == "SF"]'>
+					<ee:transform doc:name="Transform Message"
+						doc:id="f2531d2a-e84d-456a-9952-b2230b99750f">
+						<ee:message>
+							<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	
+	"statusCode": 405,
+	"sfShortAppId":payload.sfShortAppId default "",
+	"flowId": "NA",
+	"shortAppStage": "NA",
+	"app_ref_num": vars.appRefrenceNumber default 0,
+	"loanStatus": {
+		"approvedAmount": 0,
+		"requestedAmount": payload.financeAmount default 0,
+		"status": "Http method not allowed",
+		"accountId": 0,
+		"loanAppId":0,
+		"dti": 0,
+		"creditScore": 0,
+		"intrestRate": 0
+	}
+}]]></ee:set-payload>
+						</ee:message>
+					</ee:transform>
+				</when>
+				<otherwise>
+					<ee:transform xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+						xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd"
+						doc:id="43fe65fb-f281-4b91-8722-e5fed6948a2b">
+						<ee:message>
+							<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"statusCode":405,
+	"externalId": payload.externalId default 0,
+	"loanStatus":{
+		"approvedAmount":0,
+		"requestedAmount": payload.financeAmount default 0,
+		"status": "Http Method Not allowed"
+	}
+}]]></ee:set-payload>
+						</ee:message>
+						<ee:variables>
+							<ee:set-variable variableName="httpStatus"><![CDATA[405]]></ee:set-variable>
+						</ee:variables>
+					</ee:transform>
+				</otherwise>
+			</choice>
+		</on-error-continue>
+		<on-error-continue type="APIKIT:NOT_ACCEPTABLE"
+			enableNotifications="true" logException="true">
+			<choice doc:name="Choice" doc:id="a1a1d000-de3f-4849-a47e-c9b3fca551d3">
+				<when expression='#[payload.channel == "SF"]'>
+					<ee:transform doc:name="Transform Message"
+						doc:id="80de2746-b94e-4919-bd41-0598b9b04181">
+						<ee:message>
+							<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	
+	"statusCode": 405,
+	"sfShortAppId":payload.sfShortAppId default "",
+	"flowId": "NA",
+	"shortAppStage": "NA",
+	"app_ref_num": vars.appRefrenceNumber default 0,
+	"loanStatus": {
+		"approvedAmount": 0,
+		"requestedAmount": payload.financeAmount default 0,
+		"status": "Not Acceptable.",
+		"accountId": 0,
+		"loanAppId":0,
+		"dti": 0,
+		"creditScore": 0,
+		"intrestRate": 0
+	}
+}]]></ee:set-payload>
+						</ee:message>
+					</ee:transform>
+				</when>
+				<otherwise>
+					<ee:transform xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+						xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd"
+						doc:id="d9eb8627-c7d8-4f1c-b234-be768d7eeed1">
+						<ee:message>
+							<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"statusCode":406,
+	"externalId": payload.externalId default 0,
+	"loanStatus":{
+		"approvedAmount":0,
+		"requestedAmount": payload.financeAmount default 0,
+		"status": "Not Acceptable."
+	}
+}]]></ee:set-payload>
+						</ee:message>
+						<ee:variables>
+							<ee:set-variable variableName="httpStatus"><![CDATA[406]]></ee:set-variable>
+						</ee:variables>
+					</ee:transform>
+				</otherwise>
+			</choice>
+		</on-error-continue>
+		<on-error-continue type="APIKIT:UNSUPPORTED_MEDIA_TYPE"
+			enableNotifications="true" logException="true">
+			<choice doc:name="Choice" doc:id="49bbda74-0e57-401e-9a62-9a2651be55d8">
+				<when expression='#[payload.channel == "SF"]'>
+					<ee:transform doc:name="Transform Message"
+						doc:id="1b6a157d-8d93-4008-9f25-9e3c1998f47a">
+						<ee:message>
+							<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	
+	"statusCode": 415,
+	"sfShortAppId":payload.sfShortAppId default "",
+	"flowId": "NA",
+	"shortAppStage": "NA",
+	"app_ref_num": vars.appRefrenceNumber default 0,
+	"loanStatus": {
+		"approvedAmount": 0,
+		"requestedAmount": payload.financeAmount default 0,
+		"status": "Unsupported media type",
+		"accountId": 0,
+		"loanAppId":0,
+		"dti": 0,
+		"creditScore": 0,
+		"intrestRate": 0
+	}
+}]]></ee:set-payload>
+						</ee:message>
+					</ee:transform>
+				</when>
+				<otherwise>
+					<ee:transform xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+						xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd"
+						doc:id="38871532-39f8-4fa8-bbcc-102e5a04cc38">
+						<ee:message>
+							<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"statusCode":406,
+	"externalId": payload.externalId default 0,
+	"loanStatus":{
+		"approvedAmount":0,
+		"requestedAmount": payload.financeAmount default 0,
+		"status": "Unsupported media type"
+	}
+}]]></ee:set-payload>
+						</ee:message>
+						<ee:variables>
+							<ee:set-variable variableName="httpStatus"><![CDATA[415]]></ee:set-variable>
+						</ee:variables>
+					</ee:transform>
+				</otherwise>
+			</choice>
+		</on-error-continue>
+		<on-error-continue type="APIKIT:NOT_IMPLEMENTED"
+			enableNotifications="true" logException="true">
+			<choice doc:name="Choice" doc:id="a691766c-ddaf-4b23-b591-7d3715d20ae0">
+				<when expression='#[payload.channel == "SF"]'>
+					<ee:transform doc:name="Transform Message"
+						doc:id="5ed084b4-859f-43e0-acf8-751ca05dcf53">
+						<ee:message>
+							<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	
+	"statusCode": 501,
+	"sfShortAppId":payload.sfShortAppId default "",
+	"flowId": "NA",
+	"shortAppStage": "NA",
+	"app_ref_num": vars.appRefrenceNumber default 0,
+	"loanStatus": {
+		"approvedAmount": 0,
+		"requestedAmount": payload.financeAmount default 0,
+		"status": "Not Implemented",
+		"accountId": 0,
+		"loanAppId":0,
+		"dti": 0,
+		"creditScore": 0,
+		"intrestRate": 0
+	}
+}]]></ee:set-payload>
+						</ee:message>
+					</ee:transform>
+				</when>
+				<otherwise>
+					<ee:transform xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+						xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd"
+						doc:id="b83c948d-5b58-4def-863e-f0536622177b">
+						<ee:message>
+							<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"statusCode":501,
+	"externalId": payload.externalId default 0,
+	"loanStatus":{
+		"approvedAmount":0,
+		"requestedAmount": payload.financeAmount default 0,
+		"status": "Not implemented"
+	}
+}]]></ee:set-payload>
+						</ee:message>
+						<ee:variables>
+							<ee:set-variable variableName="httpStatus"><![CDATA[501]]></ee:set-variable>
+						</ee:variables>
+					</ee:transform>
+				</otherwise>
+			</choice>
+		</on-error-continue>
+		<on-error-continue enableNotifications="true"
+			logException="true" doc:name="On Error Propagate" doc:id="4a7298ce-204f-4c2a-802c-b86f501d7310"
+			type="FLOW:LOCATOR_NUMBER_ERROR">
+			<logger level="INFO" doc:name="Logger"
+				doc:id="aab8b266-7f87-409e-9aed-6f1d082e0b19" message="#[error]" />
+			<choice doc:name="Choice" doc:id="54638b23-7933-4fb8-8c46-c1121c418450">
+				<when expression='#[payload.channel == "SF"]'>
+					<ee:transform doc:name="Transform Message"
+						doc:id="e488465d-e424-4df9-ad0f-b28bf76f98fc">
+						<ee:message>
+							<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	
+	"statusCode": 4002,
+	"sfShortAppId":payload.sfShortAppId,
+	"flowId": "FLOW_LN",
+	"shortAppStage": "No Valid Report",
+	"app_ref_num": vars.appRefrenceNumber default 0,
+	"loanStatus": {
+		"approvedAmount": 0,
+		"requestedAmount": payload.financeAmount,
+		"status": "Could not found Loan Locator Number",
+		"accountId": vars.primaryAccountNumber,
+		"loanAppId":vars.loanAppId,
+		"dti": 0,
+		"creditScore": 0,
+		"intrestRate": 0
+	}
+}]]></ee:set-payload>
+						</ee:message>
+					</ee:transform>
+				</when>
+				<otherwise>
+					<ee:transform xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+						xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd"
+						doc:id="99c3a3cd-75b6-460c-90b6-54562a739e09">
+						<ee:message>
+							<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{	"statusCode": 4002,
+	"externalId": payload.externalId,
+	"app_ref_num": vars.appRefrenceNumber default 0,
+	"loanStatus": {
+		"approvedAmount": 0,
+		"requestedAmount": payload.financeAmount,
+		"status": "NA"
+	}
+}]]></ee:set-payload>
+						</ee:message>
+						<ee:variables>
+							<ee:set-variable variableName="httpStatus"><![CDATA[200]]></ee:set-variable>
+						</ee:variables>
+					</ee:transform>
+				</otherwise>
+			</choice>
+		</on-error-continue>
+		<on-error-continue enableNotifications="true"
+			logException="true" doc:name="On Error Propagate" doc:id="1e5289cd-514d-4ead-8246-240ede5d7e86"
+			type="FLOW:CALC_PAY_AMT">
+			<logger level="INFO" doc:name="Logger"
+				doc:id="b6bc3157-64c8-4a8d-a0ab-d9fdb0a09bc6" message="#[error]" />
+			<choice doc:name="Choice" doc:id="c84c72dc-084a-4495-810e-7b0aa358115d">
+				<when expression='#[payload.channel == "SF"]'>
+					<ee:transform doc:name="Transform Message"
+						doc:id="ac4cdf7e-7cd2-435a-ba92-fc1b5dd758a7">
+						<ee:message>
+							<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"statusCode": 4003,
+	"sfShortAppId":payload.sfShortAppId,
+	"flowId": "FLOW_CPA",
+	"shortAppStage": "Payment Calculation error",
+	"app_ref_num": vars.appRefrenceNumber default 0,
+	"loanStatus": {
+		"approvedAmount": 0,
+		"requestedAmount": payload.financeAmount,
+		"status": "Payment Calculation error",
+		"accountId": vars.primaryAccountNumber,
+		"loanAppId":vars.loanAppId,
+		"dti": 0,
+		"creditScore": 0,
+		"intrestRate": 0
+	}
+}]]></ee:set-payload>
+						</ee:message>
+					</ee:transform>
+				</when>
+				<otherwise>
+					<ee:transform xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+						xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd"
+						doc:id="5336f6f4-2a31-4fba-bd0d-0edd2f65edf1">
+						<ee:message>
+							<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"statusCode": 4003,
+	"externalId": payload.externalId,
+	"app_ref_num": vars.appRefrenceNumber default 0,
+	"loanStatus": {
+		"approvedAmount": 0,
+		"requestedAmount": payload.financeAmount,
+		"status": "NA"
+	}
+}]]></ee:set-payload>
+						</ee:message>
+						<ee:variables>
+							<ee:set-variable variableName="httpStatus"><![CDATA[200]]></ee:set-variable>
+						</ee:variables>
+					</ee:transform>
+				</otherwise>
+			</choice>
+		</on-error-continue>
+		<on-error-continue enableNotifications="true"
+			logException="true" doc:name="On Error Propagate" doc:id="06bd127e-b604-4d30-a6fa-986774f4b607"
+			type="FLOW:FIN_CALC">
+			<logger level="INFO" doc:name="Logger"
+				doc:id="69c7550c-67ba-4d04-986b-cf3f28589c82" message="#[error]" />
+			<choice doc:name="Choice" doc:id="a075b1c3-c50a-4a24-ae0e-3d4e4c1ba312">
+				<when expression='#[payload.channel == "SF"]'>
+					<ee:transform doc:name="Transform Message"
+						doc:id="f6eafa9c-79a1-4fc2-9ff4-40a1af607442">
+						<ee:message>
+							<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"statusCode": 4004,
+	"sfShortAppId":payload.sfShortAppId,
+	"flowId": "FLOW_FC",
+	"shortAppStage"	: "Finance Calculation error",
+	"app_ref_num": vars.appRefrenceNumber default 0,
+	"loanStatus": {
+		"approvedAmount": 0,
+		"requestedAmount": payload.financeAmount,
+		"status": "Finance Calculation error",
+		"accountId": vars.primaryAccountNumber,
+		"loanAppId":vars.loanAppId,
+		"dti": 0,
+		"creditScore": 0,
+		"intrestRate": 0
+	}
+}]]></ee:set-payload>
+						</ee:message>
+					</ee:transform>
+				</when>
+				<otherwise>
+					<ee:transform xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+						xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd"
+						doc:id="a8b496b7-8b34-41ee-88c9-6e7b123fb01c">
+						<ee:message>
+							<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"statusCode": 4004,
+	"externalId": payload.externalId,
+	"app_ref_num": vars.appRefrenceNumber default 0,
+	"loanStatus": {
+		"approvedAmount": 0,
+		"requestedAmount": payload.financeAmount,
+		"status": "NA"
+	}
+}]]></ee:set-payload>
+						</ee:message>
+						<ee:variables>
+							<ee:set-variable variableName="httpStatus"><![CDATA[200]]></ee:set-variable>
+						</ee:variables>
+					</ee:transform>
+				</otherwise>
+			</choice>
+		</on-error-continue>
+		<on-error-continue enableNotifications="true"
+			logException="true" doc:name="On Error Continue" doc:id="cee38754-aa55-41f7-8e06-fedc07c97543"
+			type="VALIDATION:BLANK_STRING">
+			<choice doc:name="Choice" doc:id="23b445e9-45c1-4993-9aac-6b35f5a36333">
+				<when expression='#[payload.channel == "SF"]'>
+					<ee:transform doc:name="Transform Message"
+						doc:id="24e6c1cc-44bc-4b7d-aa3f-428d76b42e0f">
+						<ee:message>
+							<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"statusCode": 4007,
+	"sfShortAppId":payload.sfShortAppId,
+	"flowId": "FLOW_FC",
+	"shortAppStage"	: error.description,
+	"app_ref_num": vars.appRefrenceNumber default 0,
+	"loanStatus": {
+		"approvedAmount": 0,
+		"requestedAmount": payload.financeAmount,
+		"status": "NA",
+		"accountId": vars.primaryAccountNumber,
+		"loanAppId":vars.loanAppId,
+		"dti": 0,
+		"creditScore": 0,
+		"intrestRate": 0
+	}
+}]]></ee:set-payload>
+						</ee:message>
+					</ee:transform>
+				</when>
+				<otherwise>
+					<ee:transform doc:name="Transform Message"
+						doc:id="090d8305-82b6-4ea7-8009-39489a8e6180">
+						<ee:message>
+							<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"statusCode": 4007,
+	"externalId": payload.externalId,
+	"app_ref_num": vars.appRefrenceNumber default 0,
+	"loanStatus": {
+		"approvedAmount": 0,
+		"requestedAmount": payload.financeAmount,
+		"status": "NA"
+	}
+}]]></ee:set-payload>
+						</ee:message>
+					</ee:transform>
+				</otherwise>
+			</choice>
+		</on-error-continue>
+		<on-error-continue enableNotifications="true"
+			logException="true" doc:name="On Error Continue" doc:id="c3e2d252-c56d-45c0-8deb-6bab4f061d63"
+			type="VALIDATION:INVALID_EMAIL">
+			<choice doc:name="Choice" doc:id="0149dd28-75e1-4767-ac84-601935b45757">
+				<when expression='#[payload.channel == "SF"]'>
+					<ee:transform doc:name="Transform Message"
+						doc:id="8a4a85a2-550e-4641-883b-5f717671cd65">
+						<ee:message>
+							<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"statusCode": 4007,
+	"sfShortAppId":payload.sfShortAppId,
+	"flowId": "FLOW_FC",
+	"shortAppStage"	: error.description,
+	"app_ref_num": vars.appRefrenceNumber default 0,
+	"loanStatus": {
+		"approvedAmount": 0,
+		"requestedAmount": payload.financeAmount,
+		"status": "NA",
+		"accountId": vars.primaryAccountNumber,
+		"loanAppId":vars.loanAppId,
+		"dti": 0,
+		"creditScore": 0,
+		"intrestRate": 0
+	}
+}]]></ee:set-payload>
+						</ee:message>
+					</ee:transform>
+				</when>
+				<otherwise>
+					<ee:transform doc:name="Transform Message"
+						doc:id="6320f2ab-ce7f-4913-b1ce-7e609bdc7218">
+						<ee:message>
+							<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"statusCode": 4007,
+	"externalId": payload.externalId,
+	"app_ref_num": vars.appRefrenceNumber default 0,
+	"loanStatus": {
+		"approvedAmount": 0,
+		"requestedAmount": payload.financeAmount,
+		"status": "NA"
+	}
+}]]></ee:set-payload>
+						</ee:message>
+					</ee:transform>
+				</otherwise>
+			</choice>
+		</on-error-continue>
+		<on-error-continue enableNotifications="true"
+			logException="true" doc:name="On Error Continue" doc:id="9d3952ab-06f9-4964-b20b-26c5b5878b52"
+			type="VALIDATION:INVALID_NUMBER">
+			<choice doc:name="Choice" doc:id="9a17c60e-2f42-44ed-8d10-36b4543c55d3">
+				<when expression='#[payload.channel == "SF"]'>
+					<ee:transform doc:name="Transform Message"
+						doc:id="a1c5cab4-fa74-4de0-ba68-cce0591f11f1">
+						<ee:message>
+							<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"statusCode": 4007,
+	"sfShortAppId":payload.sfShortAppId,
+	"flowId": "FLOW_FC",
+	"shortAppStage"	: error.description,
+	"app_ref_num": vars.appRefrenceNumber default 0,
+	"loanStatus": {
+		"approvedAmount": 0,
+		"requestedAmount": payload.financeAmount,
+		"status": "NA",
+		"accountId": vars.primaryAccountNumber,
+		"loanAppId":vars.loanAppId,
+		"dti": 0,
+		"creditScore": 0,
+		"intrestRate": 0
+	}
+}]]></ee:set-payload>
+						</ee:message>
+					</ee:transform>
+				</when>
+				<otherwise>
+					<ee:transform doc:name="Transform Message"
+						doc:id="cccc5d7d-5f91-451d-b01f-3e38e9aee8b9">
+						<ee:message>
+							<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"statusCode": 4007,
+	"externalId": payload.externalId,
+	"app_ref_num": vars.appRefrenceNumber default 0,
+	"loanStatus": {
+		"approvedAmount": 0,
+		"requestedAmount": payload.financeAmount,
+		"status": "NA"
+	}
+}]]></ee:set-payload>
+						</ee:message>
+					</ee:transform>
+				</otherwise>
+			</choice>
+		</on-error-continue>
+		<on-error-continue enableNotifications="true" logException="true" 
+		doc:name="On Error Continue" doc:id="1a984bf7-c745-49bd-bc1f-b98bbf946c13" type="FLOW:MULTI_PRIMARY_ACCOUNT">
+			<logger level="INFO" doc:name="Logger"
+				doc:id="9647d427-6b6a-43ba-b1de-ed1d68b53cb4" message="#[error]" />
+			<choice doc:name="Choice" doc:id="183ea7e0-3ec3-48c2-bc46-aaaba04ae6ae">
+				<when expression='#[payload.channel == "SF"]'>
+					<ee:transform doc:name="Transform Message"
+						doc:id="de660d65-2abd-49ab-90ee-4dbbc6eed0b8">
+						<ee:message>
+							<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	
+	"statusCode": 4001,
+	"sfShortAppId":payload.sfShortAppId,
+	"flowId": "FLOW_MPA",
+	"shortAppStage": "Multiple Primary",
+	"app_ref_num": vars.appRefrenceNumber default 0,
+	"loanStatus": {
+		"approvedAmount": 0,
+		"requestedAmount": payload.financeAmount default 0,
+		"status": "Multiple Primary Accounts found",
+		"accountId": 0,
+		"loanAppId":0,
+		"dti": 0,
+		"creditScore": 0,
+		"intrestRate": 0
+	}
+}]]></ee:set-payload>
+						</ee:message>
+					</ee:transform>
+				</when>
+				<otherwise>
+					<ee:transform xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+						xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd"
+						doc:id="054aecbe-e98f-48f0-ba47-50a32b9bfa47">
+						<ee:message>
+							<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"statusCode": 4001,
+	"externalId": payload.externalId,
+	"app_ref_num": vars.appRefrenceNumber default 0,
+	"loanStatus": {
+		"approvedAmount": 0,
+		"requestedAmount": payload.financeAmount,
+		"status": "NA"
+	}
+}]]></ee:set-payload>
+						</ee:message>
+						<ee:variables>
+							<ee:set-variable variableName="httpStatus"><![CDATA[200]]></ee:set-variable>
+						</ee:variables>
+					</ee:transform>
+				</otherwise>
+			</choice>
+		</on-error-continue>
+	</error-handler>
+	<flow name="cutx-loan-processor_orchestration-main">
+		<http:listener config-ref="cutx-loan-processor_orchestration-httpListenerConfig"
+			path="/api/*" doc:id="1f162061-824a-4397-a61c-e7afb95f67c5">
+			<http:response statusCode="#[vars.httpStatus default 200]">
+			</http:response>
+			<http:error-response statusCode="#[vars.httpStatus]">
+				<http:body><![CDATA[#[%dw 2.0
+output application/json
+---
+{
+	"statusCode": 500,
+	"externalId": payload.externalId,
+	"app_ref_num": vars.appRefrenceNumber default 0,
+	"loanStatus": {
+		"approvedAmount": 0,
+		"requestedAmount": payload.financeAmount,
+		"status": "Internal Server Error"
+	}
+}]]]></http:body>
+			</http:error-response>
+		</http:listener>
+		<apikit:router config-ref="cutx-loan-processor_orchestration-config" />
+	</flow>
+	<flow name="cutx-loan-processor_orchestration-console">
+		<http:listener config-ref="cutx-loan-processor_orchestration-httpListenerConfig"
+			path="/console/*">
+			<http:response statusCode="#[vars.httpStatus default 200]">
+				<http:headers>#[vars.outboundHeaders default {}]</http:headers>
+			</http:response>
+			<http:error-response statusCode="#[vars.httpStatus default 500]">
+				<http:body>#[payload]</http:body>
+				<http:headers>#[vars.outboundHeaders default {}]</http:headers>
+			</http:error-response>
+		</http:listener>
+		<apikit:console config-ref="cutx-loan-processor_orchestration-config" />
+		<error-handler>
+			<on-error-propagate type="APIKIT:NOT_FOUND">
+				<ee:transform xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+					xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+					<ee:message>
+						<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Resource not found"}]]></ee:set-payload>
+					</ee:message>
+					<ee:variables>
+						<ee:set-variable variableName="httpStatus">404
+						</ee:set-variable>
+					</ee:variables>
+				</ee:transform>
+			</on-error-propagate>
+		</error-handler>
+	</flow>
+	<flow
+		name="post:\cutx\loan\eligibilty:application\json:cutx-loan-processor_orchestration-config">
+		<logger level="INFO" doc:name="Logger" doc:id="b29db11a-26e7-4937-a6e6-6a0b7ea9e072" message="Client ID:: #[attributes.headers['client_id']]" />
+		<choice doc:name="Choice" doc:id="3c49573e-09c1-4a3b-b409-71b0e2cb65f6" >
+			<when expression="#[attributes.headers['client_id'] != '${clientId}']">
+				<raise-error doc:name="Raise error" doc:id="3c7c3df2-7eb6-48f5-9f9a-c0c265ccdcae" type="APP:BAD_REQUEST" description="Invalid Request"/>
+			</when>
+		</choice>
+		<logger level="INFO" doc:name="Logger" doc:id="13c22a1f-ee8c-445c-b95e-2b1d12755158" message="Input Payload #[payload]" />
+		<flow-ref doc:name="Validate Payload Flow Reference" doc:id="b656ff03-b0a9-4d3a-b26b-a5e5debd4021"
+			name="cutx-loan-processor-validationsFlow" />
+		<logger level="INFO" doc:name="Logger"
+			doc:id="53940b55-bde0-4366-b1ff-e955a9e6175f"
+			message="Mule Loan processor flow Start. External ID: #[payload.externalId]" />
+		<set-variable value="#[payload]" doc:name="Hold HTTP Request Data"
+			doc:id="1e879c4a-94d5-48e2-8b3d-372c9aa8e432" variableName="loanProcessorReq" />
+		<ee:transform doc:name="Unique Random Number Generator"
+			doc:id="b5f7b67c-2db1-4592-b041-b577facd8be7">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+
+var randomNum = (random() * 10000) as Number as String {format: "#"}
+var currentDayMon = now() as String {format: "ddMM"}
+---
+{
+	appReferenceNumber: randomNum ++ currentDayMon
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<set-variable value='#[payload.appReferenceNumber]'
+			doc:name="Hold App Refrerence Number" doc:id="c4c4bf89-8212-4970-a19a-d28059b9b746"
+			variableName="appRefrenceNumber" />
+		<logger level="INFO" doc:name="Logger"
+			doc:id="10faa21b-365a-48f9-b34d-f3a81fa0ebc5" message=" External ID: #[vars.loanProcessorReq.externalId] :: App Reference Number #[vars.appRefrenceNumber]"/>
+		<flow-ref doc:name="Lookup by SSN" doc:id="548646c8-1e51-49fc-93ff-82ed157ebd6b"
+			name="lookup_by_ssn" />
+		<choice doc:name="Choice" doc:id="36cf48e5-8f4c-4358-bcc1-dc08e6199218">
+			<when expression="#[payload.primaryAccountNumbers == null]">
+				<flow-ref doc:name="Create Prospect Account " doc:id="6444ab8c-a8f0-431b-a67c-6bb694af40c2"
+					name="create_prospect_accountFlow" />
+			</when>
+			<when expression="#[payload.primaryAccountNumbers != null]">
+				<flow-ref doc:name="Find Primary Account" doc:id="20760aa3-4e63-4b2a-9a62-1ba52d72d4b6"
+					name="find_primary_accountnumberFlow" />
+				<logger level="INFO" doc:name="Logger"
+					doc:id="dea252c8-91c6-45d0-ba1f-9f38e11d8aa5"
+					message=" External ID: #[vars.loanProcessorReq.externalId] ::  Total Primary Numbers Identified: #[sizeOf(payload)]" />
+				<choice doc:name="Choice" doc:id="51ae6830-6c32-430a-9900-260e31f93159">
+					<when expression="#[sizeOf(payload)==1]">
+						<flow-ref doc:name="Get Account Details" doc:id="99c1f8e0-5b31-465e-bc8f-a0779d8db0d1"
+							name="get_account_details_Flow" />
+					</when>
+					<when expression="#[sizeOf(payload)==0]">
+						<flow-ref doc:name="Create Prospect Account " doc:id="18af678c-2c00-4b2f-9511-50ba2683f637"
+							name="create_prospect_accountFlow" />
+					</when>
+					<when expression="#[sizeOf(payload)&gt;1]">
+						<choice doc:name="Choice" doc:id="ae33b91e-5010-4009-b9ad-20b73e2f2384">
+							<when expression='#[vars.loanProcessorReq.channel == "W"]'>
+								<ee:transform doc:name="Transform Message"
+									doc:id="43cb68cb-ea85-47c6-bdba-b3fa9e3abc16">
+									<ee:message>
+										<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"statusCode": 4001,
+	"statusMessage": "Multiple Primary",
+	"shortAppStage": "Multiple Primary",
+	"flowId": "FLOW_MPA"
+	
+}]]></ee:set-payload>
+									</ee:message>
+								</ee:transform>
+								<set-variable value="#[payload]" doc:name="Holds Input for Sales Force"
+									doc:id="dec4ee65-ee4e-4798-a5fa-ef7f8d0ed348" variableName="salesForceInput" />
+								<flow-ref doc:name="Send to Queue"
+									doc:id="d26c47c8-5f96-465a-8b37-acbf903fa9c2" name="send_to_sales_force_queueFlow" />
+							</when>
+						</choice>
+						<logger level="INFO" doc:name="Logger"
+							doc:id="5fde74a8-fe81-49a4-9664-87adde486731"
+							message=" External ID: #[vars.loanProcessorReq.externalId] ::  Multiple Primary - Exit the flow" />
+						<raise-error doc:name="Mutiple Primary Error"
+							doc:id="d255c527-a3f7-4108-9408-f1a4fafe5bcd" type="FLOW:MULTI_PRIMARY_ACCOUNT"
+							description="Multiple Primary Accounts" />
+					</when>
+				</choice>
+			</when>
+		</choice>
+		<set-variable value="#[payload.accountNumber]" doc:name="Primary Account Number"
+			doc:id="d867f2d4-310f-46c5-a1a6-21cbf4f54137" variableName="primaryAccountNumber" />
+		<flow-ref doc:name="Create Loan APP Flow Reference" doc:id="0be7b8cd-9141-44c0-9035-ca232e765fee"
+			name="cutx-loan-processor_orchestration_create_loan_app_flow" />
+
+		<flow-ref doc:name="Calculate Interest Rate" doc:id="2152b6a6-f964-4c10-8baf-4a8cde13e440"
+			name="execute_power_on_calculate_interest_rateFlow" />
+		<flow-ref doc:name="Pull Decision Flow Reference" doc:id="03330b83-d7d0-4927-b098-60e4ba579185"
+			name="cutx-loan-processor_orchestration_pull_decision_sub_flow" />
+		<logger level="INFO" doc:name="Logger"
+			doc:id="99ecd58e-936d-4725-98e4-a9cc6779cebe"
+			message=" External ID: #[payload.externalId] :: Is Loan Approved::::::: #[payload.RGLines.Approved]" />
+		<choice doc:name="Choice" doc:id="339b7f8e-8369-4c11-9e8c-a11ad3bb574c">
+			<when expression='#[vars.loanStatus.RGLines.Approved == true]'>
+				<flow-ref doc:name="Capture DTI  Loan Information" doc:id="0a876c3f-0fb7-446e-9e54-b97be9b068ba"
+					name="capture_dti_loan_informationFlow" />
+				<flow-ref doc:name="Max Loan Approval Flow" doc:id="2f0c85c1-51de-4f97-ab07-3c7a65287c58"
+					name="cutx-loan-processor_orchestration_max_loan_approval_sub_flow" />
+			</when>
+			<when expression='#[vars.loanStatus.RGLines.Pending == true]'>
+				<flow-ref doc:name="Loan Pending Flow Reference" doc:id="ed588adf-62e7-41d9-9a6f-74b50c9d0d12"
+					name="cutx-loan-processor_orchestration_loan_pending_sub_flow" />
+			</when>
+			<when expression='#[vars.loanStatus.RGLines.Denied == true]'>
+				<flow-ref doc:name="Loan Denied Flow Reference" doc:id="d91519cd-14ce-4a48-96cd-eda302b9607d"
+					name="cutx-loan-processor_orchestration_loan_denied_sub_flow" />
+			</when>
+		</choice>
+		<error-handler>
+			<on-error-propagate enableNotifications="true"
+				logException="true" doc:name="On Error Propagate" doc:id="5a38c494-8727-47cc-b8bb-ea494ef7fb07"
+				type="ANY">
+				<logger level="INFO" doc:name="Logger"
+					doc:id="15b8ad7f-8a81-4fed-ad9d-9a185b904bd0" message="Error Propogated to Orchestration" />
+			</on-error-propagate>
+		</error-handler>
+
+	</flow>
+	<sub-flow
+		name="cutx-loan-processor_orchestration_max_loan_approval_sub_flow"
+		doc:id="6dcafb98-1f45-42a9-a630-c08311251902">
+		<set-variable value="#[payload.maxApprovedLoanAmount]"
+			doc:name="Capture Max Loan amount" doc:id="df5ff2cb-7b53-4bcd-9d20-638ba3426290"
+			variableName="maxLoanAmount" />
+		<flow-ref doc:name="Verify Maximum Loan Amount Approval Flow"
+			doc:id="06156fd7-bf1a-444e-b82d-8566bad28b8c"
+			name="cutx-loan-processor_orchestration_max_loan_amount_approval_check_sub_Flow" />
+		<set-variable value="#[payload.loanApprovedAmount]"
+			doc:name="Holds Loan Approved Amount" doc:id="7d9b85b2-b8e4-4475-b565-40b37a8cde66"
+			variableName="loanApprovedAmount" />
+		<choice doc:name="Choice" doc:id="f0953bb4-6fea-4dc2-bc98-b1dc1dc23beb">
+			<when expression='#[vars.loanProcessorReq.channel == "W"]'>
+				<logger level="INFO" doc:name="Logger"
+					doc:id="0b5e7b03-af30-4b43-8e73-c95c9bf2556b"
+					message=" External ID: #[payload.externalId] :: Loan Approval Status :::: #[vars.loanStatus]" />
+				<ee:transform doc:name="Transform Message"
+					doc:id="72081b3d-2048-49a0-9077-1375258c8896">
+					<ee:message>
+						<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"statusCode": 200,
+	"statusMessage": "Success",
+	"shortAppStage": "Approved",
+	"loanApprovedAmount":payload.loanApprovedAmount default 0,
+	"flowId": "NA",
+	"decision": "Approved"
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+				<set-variable value="#[payload]" doc:name="Set Variable"
+					doc:id="fe26cc7e-a477-4dd5-aca9-c8bf8de9dd75" variableName="salesForceInput" />
+				<flow-ref doc:name="Updated to Sales Force" doc:id="3c21a742-ccd4-431b-a675-300402bc72f3"
+					name="send_to_sales_force_queueFlow" />
+			</when>
+		</choice>
+		<flow-ref doc:name="Assign to User Queue" doc:id="ed0c3477-b7a4-45cb-88c9-2d9fae21d0df"
+			name="update_user_queueFlow" />
+		<flow-ref doc:name="Build Success Response" doc:id="952a1e1e-821c-4879-86e4-f05628896d12"
+			name="cutx-loan-processor_orchestration_success_response_builder_sub_flow" />
+	</sub-flow>
+	<sub-flow name="cutx-loan-processor_orchestration_create_loan_app_flow"
+		doc:id="32be7071-d6f3-482b-81a5-8fcbc85e7284">
+		<flow-ref doc:name="Create Loan App" doc:id="d079d44f-2a56-472a-affa-7f0af4caf633" name="create_loan_appFlow" />
+		<flow-ref doc:name="Create Primary Customer Loan App Person"
+			doc:id="041ff862-8963-4ead-b05f-542ba8509c0d" name="create_loan_app_personFlow" />
+		<choice doc:name="Choice" doc:id="d572ed23-4714-487d-b2cc-996e5c60c4d9">
+			<when expression="#[vars.loanProcessorReq.hasCoBorrower == true]">
+				<logger level="INFO" doc:name="Logger"
+					doc:id="374dbddc-eb2d-464c-aa6b-0c3703473a59"
+					message=" External ID: #[payload.externalId] ::  Coborrower Create Loan APP Person" />
+				<set-variable value="#[true]" doc:name="Coborrower"
+					doc:id="1a9c9ffe-d978-4670-a5ab-5ae802c5ebd1" variableName="isCoborrower" />
+				<flow-ref doc:name="Create Loan App Person for CoBorrower"
+					doc:id="43cc72a5-d54c-4f3a-b7ff-ae459b910c78" name="create_loan_app_personFlow" />
+				<remove-variable doc:name="Remove Variable"
+					doc:id="b2fc33c4-1d36-4dd6-9d58-13f2cd75d40f" variableName="isCoborrower" />
+			</when>
+		</choice>
+		<flow-ref doc:name="Primary Customer Credit Pull " doc:id="57e93bc8-d348-45cc-bd7a-dc8449a0ead7"
+			name="execute_credit_pull_power_on_Flow" />
+		<choice doc:name="Choice" doc:id="8c24be14-b56a-4767-8c45-ccdaddc98dba">
+			<when expression="#[vars.loanProcessorReq.hasCoBorrower == true]">
+				<logger level="INFO" doc:name="Logger"
+					doc:id="d29582e5-f39b-4a73-84f8-4a22a86745c9"
+					message=" External ID: #[payload.externalId] ::  Coborrower Credit Pull" />
+				<set-variable value="#[true]" doc:name="Coborrower"
+					doc:id="4b2ef227-8073-4193-92dc-21a620e11344" variableName="isCoborrower" />
+				<flow-ref doc:name="CoBorrower Credit Pull" doc:id="ca007492-5a22-4e86-8de9-ed4dce50b902"
+					name="execute_credit_pull_power_on_Flow" />
+				<remove-variable doc:name="Remove coborrower"
+					doc:id="6ab87707-9427-40d4-a8fd-e65e35fd6f31" variableName="isCoborrower" />
+			</when>
+		</choice>
+	</sub-flow>
+	<sub-flow name="cutx-loan-processor_orchestration_pull_decision_sub_flow"
+		doc:id="76c3ab2b-6145-47f4-a40b-4fcfa203293a">
+		<flow-ref doc:name="Calculate Payment Amount" doc:id="7b769e31-38c5-4849-93f4-38b0db7cc816"
+			name="execute_power_on_calculate_payment_amount_Flow" />
+		<choice doc:name="Choice" doc:id="cf0c4617-f7e1-41c8-8602-d011cbaba66c">
+			<when expression='#[payload.RGLines.error != ""]'>
+				<choice doc:name="Choice" doc:id="140ae8ac-ecdf-47b1-a592-f7dac3b1e58d">
+					<when expression='#[vars.loanProcessorReq.channel == "W"]'>
+						<set-variable value="#[true]" doc:name="Has RGLines Error Variable" doc:id="94603440-e2a1-45ac-9e6d-d2f4bf3184a7" variableName="executePowerOnError"/>
+						<flow-ref doc:name="Update User Queue" doc:id="a82dbfcc-6d97-472e-ac08-11b07de32b73" name="update_user_queueFlow"/>
+						<remove-variable doc:name="Remove Has RGLines Error Variable" doc:id="27cfccee-d736-4c4e-9206-b80a66fb408d" variableName="executePowerOnError"/>
+						<ee:transform doc:name="Transform Message"
+							doc:id="e9be7f6a-cf73-4e31-9175-84516dc68195">
+							<ee:message>
+								<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"statusCode": 4003,
+	"statusMessage": payload.RGLines.error,
+	"shortAppStage": "Payment Calculation error",
+	"flowId": "FLOW_CPA"
+}]]></ee:set-payload>
+							</ee:message>
+						</ee:transform>
+						<set-variable value="#[payload]" doc:name="Holds Sales Force Input"
+							doc:id="542e4452-36bb-440e-b5be-19213ebe7a09" variableName="salesForceInput" />
+						<flow-ref doc:name="Write to sales force Flow Reference"
+							doc:id="61c9c22a-4955-47e5-9d54-647dc4eefe6d" name="send_to_sales_force_queueFlow" />
+					</when>
+				</choice>
+				<logger level="INFO" doc:name="Logger"
+					doc:id="702a1ee4-292a-463c-b62e-1bff17314b59"
+					message=" External ID: #[payload.externalId] ::  Payment Calculation RGLines error - End the flow" />
+				<raise-error doc:name="Raise error"
+					doc:id="fc3775ba-ee6d-45d4-9efd-e3ace067952a" type="FLOW:CALC_PAY_AMT"
+					description="Payment Calculation RGLines Error" />
+			</when>
+		</choice>
+		<flow-ref doc:name="Calculate Finance Calculations" doc:id="74fd8d74-c059-441f-948d-40692c9f797d"
+			name="execute_power_on_calculate_finance_calculations_Flow" />
+		<choice doc:name="Choice" doc:id="ea747ce1-5da9-414a-ac8b-9f1caf7bf8b7">
+			<when expression='#[payload.RGLines.error != ""]'>
+				<choice doc:name="Choice" doc:id="98ed508c-6a1d-405e-afa4-1fddb8c75598">
+					<when expression='#[vars.loanProcessorReq.channel == "W"]'>
+						<set-variable value="#[true]" doc:name="Has RGLines Error Variable" doc:id="355ce081-23c1-4047-9d7f-008d52a5304a" variableName="executePowerOnError"/>
+						<flow-ref doc:name="Update User Queue" doc:id="31e25a94-dc05-48f8-8466-4bfeb69a1708" name="update_user_queueFlow"/>
+						<remove-variable doc:name="Remove Has RGLines Error Variable" doc:id="0697bb8e-061a-4b8b-bb19-e2bee352d9f8" variableName="executePowerOnError"/>
+						<ee:transform doc:name="Transform Message"
+							doc:id="ee1561fe-6e06-498b-8bee-33b19ac64222">
+							<ee:message>
+								<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"statusCode": 4004,
+	"statusMessage": payload.RGLines.error,
+	"shortAppStage": "Finance Calculation error",
+	"flowId": "FLOW_FC"
+}]]></ee:set-payload>
+							</ee:message>
+						</ee:transform>
+						<set-variable value="#[payload]" doc:name="Set Variable"
+							doc:id="6d4fdf52-1fb1-4737-8a90-cffb40e699b4" variableName="salesForceInput" />
+						<flow-ref doc:name="Flow Reference" doc:id="d7206546-918b-49b2-abc5-8a3094cb73a7"
+							name="send_to_sales_force_queueFlow" />
+					</when>
+				</choice>
+				<logger level="INFO" doc:name="Logger"
+					doc:id="9f4edb72-85ec-47e4-8ce2-7f91a330a9ec"
+					message=" External ID: #[payload.externalId] ::  Financial Calculations RGLines Error - Premature End of the Mule Flow" />
+				<raise-error doc:name="Raise error"
+					doc:id="1a6b414c-0457-4038-b187-5207c7a92d99" type="FLOW:FIN_CALC"
+					description="Finance Calculation RGLines Error" />
+			</when>
+		</choice>
+		<flow-ref doc:name="Pull Decision" doc:id="917fca8f-0bcc-4d0d-85d7-1810f1bf2d1d"
+			name="pull_decisionFlow" />
+	</sub-flow>
+	<sub-flow name="cutx-loan-processor_orchestration_loan_pending_sub_flow"
+		doc:id="71b4f2c0-75e8-4353-bc1f-a0c859ca2997">
+		<ee:transform doc:name="Transform Message"
+			doc:id="59e89607-3c9b-4fe7-8faa-939e1f993cf7">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"statusCode": 4005,
+	"statusMessage": vars.loanStatus.RGLines.Errors,
+	"shortAppStage": "Loan pending",
+	"flowId": "FLOW_PD",
+	"decision": "Pending"
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<set-variable value="#[payload]" doc:name="Holds input for Sales Force"
+			doc:id="7fca6c86-bd7b-43a9-912a-d73bde8db467" variableName="salesForceInput" />
+		<choice doc:name="Choice" doc:id="9cd157b2-473e-4367-a0e7-6c2c93bc4f7e">
+			<when expression='#[vars.loanProcessorReq.channel == "W"]'>
+				<flow-ref doc:name="Send Message to Sales Force" doc:id="f36751ce-cc9f-4b70-a790-90ed5ecd6d72"
+					name="send_to_sales_force_queueFlow" />
+			</when>
+		</choice>
+		<flow-ref doc:name="Assign to UserQueue" doc:id="49675d82-0326-4ce4-b90e-1695bb94b87a"
+			name="update_user_queueFlow" />
+		<logger level="INFO" doc:name="Logger"
+			doc:id="238a3fab-f0f9-404e-8e2c-2a4c6756fa5a" message="#[payload]" />
+		<ee:transform doc:name="Loan Pending Response Payload"
+			doc:id="024356c4-dd5c-46d4-9e9a-a12c0e78b98d">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	statusCode: 4005,
+	statusMessage: "Pending",
+	shortAppStage: "Loan pending"
+	
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<flow-ref doc:name="Build Response Flow Reference" doc:id="99f7f4ff-3a3b-4948-b945-c55514078f13"
+			name="cutx-loan-processor_orchestration_loan_denied_pending_response_sub_flow" />
+
+	</sub-flow>
+	<sub-flow name="cutx-loan-processor_orchestration_loan_denied_sub_flow"
+		doc:id="598ffda9-3b1a-42c3-96e2-fc248a788410">
+		<ee:transform doc:name="Transform Message"
+			doc:id="d50bc160-c423-4445-95a9-98e62c85d818">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"statusCode": 4006,
+	"statusMessage": vars.loanStatus.RGLines.Errors,
+	"shortAppStage": "Loan denied",
+	"flowId": "FLOW_PD",
+	"decision": "Denied"
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<set-variable value="#[payload]" doc:name="Holds input for Sales Force"
+			doc:id="35b738d5-9d1e-4961-9e24-23753c5d308b" variableName="salesForceInput" />
+		<choice doc:name="Choice" doc:id="ddee6b98-d85a-4543-9fed-5d74b86c5504">
+			<when expression='#[vars.loanProcessorReq.channel == "W"]'>
+				<flow-ref doc:name="Send Message to Sales Force" doc:id="d1e01bcf-7865-4dba-aa85-61bae743c0fa"
+					name="send_to_sales_force_queueFlow" />
+			</when>
+		</choice>
+		<flow-ref doc:name="Assign to UserQueue" doc:id="c378c401-0f4d-4325-9b4a-e137631eef01"
+			name="update_user_queueFlow" />
+		<logger level="INFO" doc:name="Logger"
+			doc:id="20a43593-d712-44f4-b204-8530dbafe77c" message="#[payload]" />
+		<ee:transform doc:name="Loan Pending Response Payload"
+			doc:id="2ad244b6-9113-44b7-93d3-5c61d01bf5ad">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	statusCode: 4006,
+	statusMessage: "Denied",
+	shortAppStage: "Loan denied"
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<flow-ref doc:name="Build Response Flow Reference" doc:id="b7c36d4b-6bd4-4237-bb59-722e3a128a02"
+			name="cutx-loan-processor_orchestration_loan_denied_pending_response_sub_flow" />
+
+	</sub-flow>
+	<sub-flow
+		name="cutx-loan-processor_orchestration_max_loan_amount_approval_check_sub_Flow"
+		doc:id="f6b37d4a-04a4-4981-b3fd-8ce488272475">
+		<flow-ref doc:name="Update Loan App With Max Approved Loan Amount"
+			doc:id="d6a8ab11-388c-4311-9952-cc9a9fd4d338" name="update_loan_app_by_IDFlow" />
+		<flow-ref doc:name="Pull Decision" doc:id="5741770d-290f-42de-b36b-254adcf1132b"
+			name="cutx-loan-processor_orchestration_pull_decision_sub_flow" />
+		<choice doc:name="Choice" doc:id="b692ecda-71ff-4109-ac34-cba099f0d244">
+			<when expression="payload.RGLines.Approved == true">
+				<ee:transform doc:name="Transform Message"
+					doc:id="507facca-8706-4212-b863-af05ec05da64">
+					<ee:message>
+						<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	loanApprovedAmount: vars.maxLoanAmount
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</when>
+			<otherwise>
+				<set-payload
+					value="#[maxApprovedLoanAmount: vars.loanProcessorReq.financeAmount as Number]"
+					doc:name="Set Payload" doc:id="ef4e5835-4e93-467f-a0db-c896e92e5e89" />
+				<flow-ref doc:name="Update Loan App With Initial Approved Loan Amount"
+					doc:id="ad8b13d3-614e-48f4-9ec1-b91928e912fc" name="update_loan_app_by_IDFlow" />
+				<flow-ref doc:name="Flow Reference" doc:id="6099cdf3-ecce-41cd-820e-ee881be8d999"
+					name="cutx-loan-processor_orchestration_pull_decision_sub_flow" />
+				<flow-ref doc:name="Flow Reference" doc:id="664eb485-ec51-4395-9866-40db1b71eeb0"
+					name="capture_dti_loan_informationFlow" />
+				<set-payload
+					value="#[approvedLoanAmount: vars.loanProcessorReq.financeAmount as Number]"
+					doc:name="Set Payload" doc:id="5e2bac35-6175-4c95-8c11-ca668af74440" />
+				<ee:transform doc:name="Transform Message"
+					doc:id="6d25933c-e3d3-474c-874b-03985c893ab8">
+					<ee:message>
+						<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	loanApprovedAmount: payload.approvedLoanAmount as Number
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</otherwise>
+		</choice>
+	</sub-flow>
+	<sub-flow
+		name="cutx-loan-processor_orchestration_success_response_builder_sub_flow"
+		doc:id="e7eece6a-c03e-4496-a117-278aa7c53245">
+		<choice doc:name="Choice" doc:id="3e9c507b-7c5c-4818-bfc9-03ae4031b017">
+			<when expression='#[vars.loanProcessorReq.channel == "W"]'>
+				<ee:transform doc:name="Web Response Transform Message"
+					doc:id="545d0c11-f79f-4a9c-a3a5-c8f2d0b71191">
+					<ee:message>
+						<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"statusCode": 200,
+	"externalId": vars.loanProcessorReq.externalId,
+	"app_ref_num": vars.appRefrenceNumber,
+	"loanStatus": {
+		"approvedAmount": vars.loanApprovedAmount,
+		"requestedAmount": vars.loanProcessorReq.financeAmount,
+		"status": "Approved"
+	}
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+				<logger level="INFO" doc:name="Logger"
+					doc:id="cb55a843-3f52-4fb2-a36b-34a73342c415"
+					message=" External ID: #[payload.externalId] :: Response to Web::: #[payload]" />
+			</when>
+			<when expression='#[vars.loanProcessorReq.channel == "SF"]'>
+				<ee:transform doc:name="SF Response Transform Message"
+					doc:id="9e855f39-ceeb-4ed3-bc3e-cf0b3e1d8fc5">
+					<ee:message>
+						<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"statusCode": 200,
+	"sfShortAppId":vars.loanProcessorReq.sfShortAppId,
+	"flowId": "NA",
+	"shortAppStage": "Approved",
+	"app_ref_num": vars.appRefrenceNumber,
+	"loanStatus": {
+		"approvedAmount": vars.loanApprovedAmount,
+		"requestedAmount": vars.loanProcessorReq.financeAmount,
+		"status": "Approved",
+		"accountId": vars.primaryAccountNumber,
+		"loanAppId":vars.loanAppId,
+		"dti": vars.dtiRatio,
+		"creditScore": vars.creditScore,
+		"intrestRate": vars.riskBasedPricingRate
+	}
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+				<logger level="INFO" doc:name="Logger"
+					doc:id="28d961f9-7650-46ef-b792-ac2be4c9a449"
+					message=" External ID: #[payload.externalId] ::  Response to Sales Force::: #[payload]" />
+			</when>
+
+		</choice>
+	</sub-flow>
+	<sub-flow
+		name="cutx-loan-processor_orchestration_loan_denied_pending_response_sub_flow"
+		doc:id="afe8ac8b-f162-4c9f-b228-39f244edcb38">
+		<choice doc:name="Choice" doc:id="5761efc2-fa0e-457b-9cdf-7e457d21b5ff">
+			<when expression='#[vars.loanProcessorReq.channel == "SF"]'>
+				<ee:transform doc:name="SF Response Transformer"
+					doc:id="b2b2993a-61f8-42c9-b2d0-7af5c315ac15">
+					<ee:message>
+						<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"statusCode": payload.statusCode,
+	"statusMessage": vars.salesForceInput.statusMessage default "",
+	"sfShortAppId":vars.loanProcessorReq.sfShortAppId,
+	"shortAppStage": payload.shortAppStage,
+	"flowId": "FLOW_PD",
+	"app_ref_num": vars.appRefrenceNumber,
+	"loanStatus": {
+		"approvedAmount": "0",
+		"requestedAmount": vars.loanProcessorReq.financeAmount,
+		"status": payload.statusMessage,
+		"accountId": vars.primaryAccountNumber,
+		"loanAppId":vars.loanAppId,
+		"dti": "0",
+		"creditScore": "0",
+		"intrestRate": vars.riskBasedPricingRate
+	}
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+				<logger level="INFO" doc:name="Logger"
+					doc:id="eaa88f8c-8a0f-407c-8eb9-d2c351801c26"
+					message=" External ID: #[payload.externalId] ::  Denied or Pending response to SF:: #[payload]" />
+			</when>
+			<otherwise>
+				<ee:transform doc:name="Web Response Transformer"
+					doc:id="b6a59e48-a6fa-4bf5-b430-451f241d21b0">
+					<ee:message>
+						<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"statusCode": payload.statusCode,
+	"externalId": vars.loanProcessorReq.externalId,
+	"app_ref_num": vars.appRefrenceNumber,
+	"loanStatus": {
+		"approvedAmount": 0,
+		"requestedAmount": vars.loanProcessorReq.financeAmount,
+		"status": payload.statusMessage
+	}
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+				<logger level="INFO" doc:name="Logger"
+					doc:id="ff85ee03-059a-42c2-8566-d3b823ecceec"
+					message=" External ID: #[payload.externalId] ::  Denied or Pending response to Web:: #[payload]" />
+			</otherwise>
+		</choice>
+	</sub-flow>
+</mule>
