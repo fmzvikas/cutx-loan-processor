@@ -1,8 +1,7 @@
 salesforce:
   grant_type: "password"
-  client_id: "3MVG9PbQtiUzNgN5HOnTahCd6GTQfm7Q8I38swUR6m0rJgLY8C_lM2XuNqsdF3E_3_GIBlcqYaKeOKcZ8uSDz"
-  client_secret: "C36B827A9001B6239E427148819CDD37CBDC81F2B3303CF124D06C436CA660A7"
+  client_id: "3MVG9dKFWsESbpkHYrOVyyvQaQKn3AMpsaMnJLPMEOYNnIwIRz_Sn02VRuCWRDifJGKLkVMbOtlrIWCsgPyln"
+  client_secret: "59A2FA5862B2AE083389DD420FCB2A6CAB68C2937E79DDE0428C1EDDB35AD03A"
   username: "vikas.gupta@fortimize.com.cutx.preprod"
-  password: "kDst-B7CNdS#Z6j"
-  tokenEndpoint: "cutx--preprod.lightning.force.com"
- 
+  password: "y9KEsr78HC6>pb%UtRaG0K1X5yPB5GBqR6vG0fw"
+  tokenEndpoint: "cutx--preprod.cs47.my.salesforce.com"
