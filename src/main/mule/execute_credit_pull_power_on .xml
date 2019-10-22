@@ -66,14 +66,11 @@ var ssn =  if(vars.isCoborrower == true) vars.loanProcessorReq.coBorrower.coBorr
 		<ee:transform doc:name="Execute Credit Pull Power on Response Transformer" doc:id="45dc94ab-a982-45b4-bc47-f7bfae7efe43" >
 			<ee:message >
 				<ee:set-payload ><![CDATA[%dw 2.0
-output application/json
+output application/java
 ns ns0 http://www.symxchange.generated.symitar.com/v1/poweron
-var rgLines  = read(payload.body.ns0#executePowerOnResponse.Response.Body.RGLines default "", "application/json")
 ---
 {
-	validReport: rgLines.validreport,
-	locator: trim(rgLines.locator) as Number,
-	error: rgLines.error default ""
+validReport: read(payload.body.ns0#executePowerOnResponse.Response.Body.RGLines default "", "application/json").validreport
 }
 
 
@@ -81,37 +78,9 @@ var rgLines  = read(payload.body.ns0#executePowerOnResponse.Response.Body.RGLine
 			</ee:message>
 		</ee:transform>
 		<choice doc:name="Choice" doc:id="b53a6d01-71f0-4f50-8b6e-ad2f93fd253a" >
-			<when expression="#[payload.validReport==false and payload.locator == 0]" >
+			<when expression="#[payload.validReport==false]">
 				<flow-ref doc:name="Call Credit Report Locator" doc:id="a1e5d175-9f3e-4659-a508-54af076092e7" name="get_account_select_fields_filter_childrenFlow" />
-			</when>
-			<when expression='#[payload.error != ""]' >
-				<flow-ref doc:name="Flow Reference" doc:id="7dfb74ef-f8af-4889-ba3e-abd38d7a2c15" name="execute_credit_pull_power_on_sub_flow"/>
 			</when>
 		</choice>
 	</flow>
-	<sub-flow name="execute_credit_pull_power_on_sub_flow" doc:id="82e34e52-985b-4356-931c-e20836c7a2e6" >
-		<set-variable value="#[true]" doc:name="Set Variable" doc:id="679022a9-0459-4425-aa56-221c1369ffc1" variableName="executePowerOnError" />
-		<flow-ref doc:name="User Queue" doc:id="ce48960c-3e02-42ad-a5a5-5219a0a6d7fc" name="update_user_queueFlow" />
-		<remove-variable doc:name="Remove Variable" doc:id="bdde3def-e0ff-43d4-a937-31688be9cece" variableName="executePowerOnError" />
-		<choice doc:name="Choice" doc:id="0b839002-7fda-4318-8fa9-e245f978e221" >
-			<when expression='#[vars.loanProcessorReq.channel == "W"]'>
-				<ee:transform doc:name="Transform Message" doc:id="f5c2aa65-8426-4604-b53a-575bb79e04ec">
-			<ee:message>
-				<ee:set-payload><![CDATA[%dw 2.0
-output application/json
----
-{
-	"statusCode": 4003,
-	"statusMessage": payload.error,
-	"shortAppStage": "Error pulling credit report",
-	"flowId": "FLOW_CPA"
-}]]></ee:set-payload>
-			</ee:message>
-		</ee:transform>
-				<set-variable value="#[payload]" doc:name="Set Variable" doc:id="b9bb4e14-85d1-433c-b940-ea79328d6480" variableName="salesForceInput"/>
-				<flow-ref doc:name="Flow Reference" doc:id="5da65819-467d-4976-abea-11a253f3e956" name="send_to_sales_force_queueFlow"/>
-			</when>
-		</choice>
-		<raise-error doc:name="Raise error" doc:id="ee04dfa0-e152-4980-b234-1d0e78e0f2ff" type="FLOW:CALC_PAY_AMT" description="Error Pulling Credit Report"/>
-	</sub-flow>
 </mule>
