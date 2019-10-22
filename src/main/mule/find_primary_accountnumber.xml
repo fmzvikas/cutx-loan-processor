@@ -80,7 +80,7 @@ vars.primaryAccountNumbers + vars.result
 		<set-payload value="#[vars.primaryAccountNumbers]" doc:name="Set Payload" doc:id="9437ca00-5b5c-4cd3-af38-2155e0c1ab42" />
 		<remove-variable doc:name="Remove Variable Primary Account Numbers" doc:id="c9b14fa2-507a-4051-8f0f-c00ea1584cb6" variableName="primaryAccountNumbers"/>
 		<remove-variable doc:name="Remove Variable Account Number" doc:id="4a595745-6b84-447e-828a-76627c7803fc" variableName="tmpAccountNumber"/>
-		<logger level="INFO" doc:name="Logger" doc:id="c3572308-5ee0-472a-8dec-2f0a0346bb42" message=" External ID: #[vars.loanProcessorReq.externalId] :: All Primary Accounts: #[payload]"/>
+		<logger level="INFO" doc:name="Logger" doc:id="c3572308-5ee0-472a-8dec-2f0a0346bb42" message=" External ID: #[vars.loanProcessorReq.externalId] :: All Primary Accounts: #[vars.primaryAccountNumbers]"/>
 	</flow>
 	<sub-flow name="find_primary_accountnumber_Sub_Flow" doc:id="5132b3a9-04ab-4250-af86-9130000ae013" >
 		<wsc:consume operation="searchNameSelectFields" doc:name="Find Primary Account Service" doc:id="3e690373-e440-42e0-a7c6-5cf05b38aa7d" config-ref="Account_Service_Config" />
